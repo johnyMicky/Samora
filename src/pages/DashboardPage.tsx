@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { 
   Shield, 
@@ -46,6 +46,26 @@ import {
   type FinancialSource
 } from '../lib/demoData';
 import { LanguageSwitcher } from '../App';
+import {
+  firestoreGetWalletsForClient,
+  firestoreGetBankAccountsForClient,
+  firestoreGetPaymentCardsForClient,
+  firestoreSubscribeWalletsForClient,
+  firestoreSubscribeBankAccountsForClient,
+  firestoreSubscribePaymentCardsForClient,
+  firestoreAddWallet,
+  firestoreUpdateWallet,
+  firestoreDeleteWallet,
+  firestoreAddBankAccount,
+  firestoreUpdateBankAccount,
+  firestoreDeleteBankAccount,
+  firestoreAddPaymentCard,
+  firestoreUpdatePaymentCard,
+  firestoreDeletePaymentCard,
+  type FirestoreWallet,
+  type FirestoreBankAccount,
+  type FirestorePaymentCard
+} from '../lib/firestoreService';
 
 type DashboardTab = 'overview' | 'my-case' | 'my-finance' | 'transactions' | 'documents' | 'support' | 'profile';
 
@@ -83,10 +103,54 @@ export const DashboardPage: React.FC = () => {
   const activeClientId = isDemoUser ? 'demo_client_user' : (user?.id || '');
 
   const clientProfile = getClientProfile(activeClientId);
-  const clientAssets = getClientAssets(activeClientId);
-  const clientBankAccounts = getClientBankAccounts(activeClientId);
-  const clientPayoutCards = getClientPayoutCards(activeClientId);
-  const totalBalance = getClientTotalBalance(activeClientId);
+
+  // Real Firebase finance state. Admin and client now read/write the SAME Firestore collections.
+  const [realWallets, setRealWallets] = useState<FirestoreWallet[]>([]);
+  const [realBanks, setRealBanks] = useState<FirestoreBankAccount[]>([]);
+  const [realCards, setRealCards] = useState<FirestorePaymentCard[]>([]);
+
+  const loadRealFinance = useCallback(async () => {
+    if (!activeClientId) return;
+    try {
+      const [wallets, banks, cards] = await Promise.all([
+        firestoreGetWalletsForClient(activeClientId),
+        firestoreGetBankAccountsForClient(activeClientId),
+        firestoreGetPaymentCardsForClient(activeClientId)
+      ]);
+      setRealWallets(wallets);
+      setRealBanks(banks);
+      setRealCards(cards);
+    } finally {
+      // Keep the last successfully loaded state if a transient request fails.
+    }
+  }, [activeClientId]);
+
+  useEffect(() => {
+    if (!activeClientId) return;
+    void loadRealFinance();
+    const unsubWallets = firestoreSubscribeWalletsForClient(activeClientId, setRealWallets);
+    const unsubBanks = firestoreSubscribeBankAccountsForClient(activeClientId, setRealBanks);
+    const unsubCards = firestoreSubscribePaymentCardsForClient(activeClientId, setRealCards);
+    return () => { unsubWallets(); unsubBanks(); unsubCards(); };
+  }, [activeClientId, loadRealFinance]);
+
+  const clientAssets: FinanceAsset[] = realWallets.map(w => ({
+    id: w.id || '', clientId: w.clientId, symbol: w.asset, name: w.label || w.asset,
+    network: w.network, balance: Number(w.balance) || 0, walletAddress: w.walletAddress,
+    label: w.label, source: w.source, createdAt: '', updatedAt: ''
+  }));
+  const clientBankAccounts: BankAccountItem[] = realBanks.map(b => ({
+    id: b.id || '', clientId: b.clientId, accountHolder: b.accountHolder, bankName: b.bankName,
+    country: b.country, iban: b.iban, swiftBic: b.swiftBic, label: b.label,
+    status: b.status as BankAccountItem['status'], source: b.source, createdAt: '', updatedAt: ''
+  }));
+  const clientPayoutCards: PayoutCardItem[] = realCards.map(c => ({
+    id: c.id || '', clientId: c.clientId, cardholderName: c.cardholderName, cardBrand: c.brand,
+    last4: c.last4, expiryMonth: c.expiryMonth, expiryYear: c.expiryYear,
+    billingCountry: c.billingCountry, label: c.label, source: c.source,
+    status: c.status, createdAt: '', updatedAt: ''
+  }));
+  const totalBalance = clientAssets.reduce((sum, a) => sum + (Number(a.balance) || 0), 0);
   const clientCases = getClientCases(activeClientId);
   const clientTransactions = getClientTransactions(activeClientId);
   const clientDocuments = getClientDocuments(activeClientId);
@@ -252,13 +316,12 @@ export const DashboardPage: React.FC = () => {
     e.preventDefault();
     if (!walletFormAddress.trim()) return;
 
-    await addWallet(activeClientId, {
-      symbol: walletFormAsset,
-      network: walletFormNetwork,
-      walletAddress: walletFormAddress.trim(),
-      label: walletFormLabel.trim() || undefined,
-      source: 'client'
-    }, 'client', clientFullName);
+    await firestoreAddWallet({
+      clientId: activeClientId, asset: walletFormAsset.toUpperCase(), network: walletFormNetwork,
+      walletAddress: walletFormAddress.trim(), label: walletFormLabel.trim() || undefined,
+      source: 'client', status: 'Active', balance: 0
+    });
+    await loadRealFinance();
 
     setWalletFormAddress('');
     setIsAddWalletOpen(false);
@@ -268,15 +331,12 @@ export const DashboardPage: React.FC = () => {
     e.preventDefault();
     if (!bankFormIban.trim() || !bankFormName.trim()) return;
 
-    await addBankAccount(activeClientId, {
-      accountHolder: bankFormHolder.trim(),
-      bankName: bankFormName.trim(),
-      country: bankFormCountry.trim(),
-      iban: bankFormIban.trim(),
-      swiftBic: bankFormSwift.trim(),
-      label: bankFormLabel.trim() || undefined,
-      source: 'client'
-    }, 'client', clientFullName);
+    await firestoreAddBankAccount({
+      clientId: activeClientId, accountHolder: bankFormHolder.trim(), bankName: bankFormName.trim(),
+      country: bankFormCountry.trim(), iban: bankFormIban.trim(), swiftBic: bankFormSwift.trim(),
+      label: bankFormLabel.trim() || undefined, source: 'client', status: 'Verified'
+    });
+    await loadRealFinance();
 
     setIsAddBankOpen(false);
   };
@@ -325,16 +385,13 @@ export const DashboardPage: React.FC = () => {
     setCardFormCvv('');
     setCardFormRawNumber('');
 
-    await addPayoutCard(activeClientId, {
-      cardholderName: holder,
-      cardBrand: cardFormBrand,
-      last4: last4,
-      expiryMonth: formattedExpMonth,
-      expiryYear: formattedExpYear,
-      billingCountry: cardFormCountry.trim() || 'Germany',
-      label: cardFormLabel.trim() || undefined,
-      source: 'client'
-    }, 'client', clientFullName);
+    await firestoreAddPaymentCard({
+      clientId: activeClientId, cardholderName: holder, brand: cardFormBrand, last4,
+      expiryMonth: formattedExpMonth, expiryYear: formattedExpYear,
+      billingCountry: cardFormCountry.trim() || 'Germany', label: cardFormLabel.trim() || undefined,
+      source: 'client', status: 'Active'
+    });
+    await loadRealFinance();
 
     setIsAddCardOpen(false);
   };
@@ -366,22 +423,13 @@ export const DashboardPage: React.FC = () => {
     const actorName = clientFullName;
 
     if (editingItem.type === 'wallet') {
-      await updateWallet(editingItem.item.id, {
-        label: editLabel.trim() || undefined,
-        walletAddress: editAddressOrIban.trim()
-      }, 'client', activeClientId, actorName);
+      await firestoreUpdateWallet(editingItem.item.id, { label: editLabel.trim() || undefined, walletAddress: editAddressOrIban.trim() });
     } else if (editingItem.type === 'bank') {
-      await updateBankAccount(editingItem.item.id, {
-        label: editLabel.trim() || undefined,
-        iban: editAddressOrIban.trim()
-      }, 'client', activeClientId, actorName);
+      await firestoreUpdateBankAccount(editingItem.item.id, { label: editLabel.trim() || undefined, iban: editAddressOrIban.trim() });
     } else if (editingItem.type === 'card') {
-      await updatePayoutCard(editingItem.item.id, {
-        label: editLabel.trim() || undefined,
-        cardholderName: editAddressOrIban.trim()
-      }, 'client', activeClientId, actorName);
+      await firestoreUpdatePaymentCard(editingItem.item.id, { label: editLabel.trim() || undefined, cardholderName: editAddressOrIban.trim() });
     }
-
+    await loadRealFinance();
     setEditingItem(null);
   };
 
@@ -390,13 +438,13 @@ export const DashboardPage: React.FC = () => {
     const actorName = clientFullName;
 
     if (deletingItem.type === 'wallet') {
-      await deleteWallet(deletingItem.id, 'client', activeClientId, actorName);
+      await firestoreDeleteWallet(deletingItem.id);
     } else if (deletingItem.type === 'bank') {
-      await deleteBankAccount(deletingItem.id, 'client', activeClientId, actorName);
+      await firestoreDeleteBankAccount(deletingItem.id);
     } else if (deletingItem.type === 'card') {
-      await deletePayoutCard(deletingItem.id, 'client', activeClientId, actorName);
+      await firestoreDeletePaymentCard(deletingItem.id);
     }
-
+    await loadRealFinance();
     setDeletingItem(null);
   };
 

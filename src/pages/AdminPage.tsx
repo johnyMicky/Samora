@@ -58,7 +58,7 @@ import {
   firestoreGetAllUserProfiles, firestoreGetWalletsForClient, firestoreGetBankAccountsForClient,
   firestoreGetPaymentCardsForClient, firestoreGetCasesForClient, firestoreGetTransactionsForClient,
   firestoreGetDocumentsForClient, firestoreAddWallet, firestoreAddPaymentCard, firestoreAddCase,
-  firestoreUpdateCase, firestoreDeleteCase,
+  firestoreUpdateCase, firestoreDeleteCase, firestoreUpdateWallet, firestoreDeleteWallet,
   type FirestoreUserProfile, type FirestoreWallet, type FirestoreBankAccount, type FirestorePaymentCard,
   type FirestoreCase, type FirestoreTransaction, type FirestoreDocument
 } from '../lib/firestoreService';
@@ -435,6 +435,8 @@ export const AdminPage: React.FC = () => {
 
     if (selectedClientId && !editingAsset) {
       void firestoreAddWallet({ clientId: selectedClientId, asset: assetFormSymbol, network: assetFormNetwork, walletAddress: assetFormWallet.trim(), label: assetFormName, source: 'admin', status: 'Active', balance: balanceNum }).then(() => loadRealClientData(selectedClientId));
+    } else if (editingAsset && selectedClientId) {
+      void firestoreUpdateWallet(editingAsset.id, { asset: assetFormSymbol, network: assetFormNetwork, balance: balanceNum, walletAddress: assetFormWallet.trim(), label: assetFormName }).then(() => loadRealClientData(selectedClientId));
     } else if (editingAsset) {
       updateAsset(editingAsset.id, { symbol: assetFormSymbol, name: assetFormName, network: assetFormNetwork, balance: balanceNum, walletAddress: assetFormWallet.trim(), comment: assetFormComment.trim() || undefined }, currentActorName);
     } else { addAsset(assetFormClient, { symbol: assetFormSymbol, name: assetFormName, network: assetFormNetwork, balance: balanceNum, walletAddress: assetFormWallet.trim(), source: 'admin', comment: assetFormComment.trim() || undefined }, currentActorName); }
@@ -1282,7 +1284,7 @@ export const AdminPage: React.FC = () => {
                                   </button>
                                   <span className="text-[#29292C]">•</span>
                                   <button
-                                    onClick={() => deleteAsset(asset.id, currentActorName)}
+                                    onClick={() => { if (selectedClientId) { void firestoreDeleteWallet(asset.id).then(() => loadRealClientData(selectedClientId)); } else { deleteAsset(asset.id, currentActorName); } }}
                                     className="text-red-400 hover:text-red-300 transition-colors cursor-pointer text-[11px]"
                                   >
                                     Remove
@@ -1611,7 +1613,7 @@ export const AdminPage: React.FC = () => {
                             </button>
                             <span className="text-[#29292C]">•</span>
                             <button
-                              onClick={() => deleteAsset(asset.id, currentActorName)}
+                              onClick={() => { if (selectedClientId) { void firestoreDeleteWallet(asset.id).then(() => loadRealClientData(selectedClientId)); } else { deleteAsset(asset.id, currentActorName); } }}
                               className="text-red-400 hover:text-red-300 transition-colors cursor-pointer text-xs"
                             >
                               Remove

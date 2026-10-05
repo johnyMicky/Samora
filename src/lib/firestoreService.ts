@@ -26,6 +26,7 @@ import {
   orderBy, 
   serverTimestamp, 
   Timestamp,
+  onSnapshot,
   type DocumentData 
 } from 'firebase/firestore';
 import { db } from '../firebase';
@@ -110,6 +111,11 @@ export const firestoreGetWalletsForClient = async (clientId: string): Promise<Fi
   }
 };
 
+export const firestoreSubscribeWalletsForClient = (clientId: string, callback: (items: FirestoreWallet[]) => void) => {
+  const q = query(collection(db, 'wallets'), where('clientId', '==', clientId));
+  return onSnapshot(q, snap => callback(snap.docs.map(d => ({ id: d.id, ...d.data() } as FirestoreWallet))), err => console.warn('Firestore wallet subscription error:', err));
+};
+
 export const firestoreAddWallet = async (wallet: Omit<FirestoreWallet, 'id' | 'createdAt' | 'updatedAt'>): Promise<string> => {
   const ref = await addDoc(collection(db, 'wallets'), {
     ...wallet,
@@ -157,6 +163,11 @@ export const firestoreGetBankAccountsForClient = async (clientId: string): Promi
     console.warn('Firestore: Could not fetch bank accounts:', err);
     return [];
   }
+};
+
+export const firestoreSubscribeBankAccountsForClient = (clientId: string, callback: (items: FirestoreBankAccount[]) => void) => {
+  const q = query(collection(db, 'bankAccounts'), where('clientId', '==', clientId));
+  return onSnapshot(q, snap => callback(snap.docs.map(d => ({ id: d.id, ...d.data() } as FirestoreBankAccount))), err => console.warn('Firestore bank subscription error:', err));
 };
 
 export const firestoreAddBankAccount = async (bank: Omit<FirestoreBankAccount, 'id' | 'createdAt' | 'updatedAt'>): Promise<string> => {
@@ -209,6 +220,11 @@ export const firestoreGetPaymentCardsForClient = async (clientId: string): Promi
   }
 };
 
+export const firestoreSubscribePaymentCardsForClient = (clientId: string, callback: (items: FirestorePaymentCard[]) => void) => {
+  const q = query(collection(db, 'paymentMethods'), where('clientId', '==', clientId));
+  return onSnapshot(q, snap => callback(snap.docs.map(d => ({ id: d.id, ...d.data() } as FirestorePaymentCard))), err => console.warn('Firestore card subscription error:', err));
+};
+
 export const firestoreAddPaymentCard = async (card: Omit<FirestorePaymentCard, 'id' | 'createdAt' | 'updatedAt'>): Promise<string> => {
   // Ensure strict safety: only allow safe metadata properties
   const safeData = {
@@ -228,6 +244,17 @@ export const firestoreAddPaymentCard = async (card: Omit<FirestorePaymentCard, '
 
   const ref = await addDoc(collection(db, 'paymentMethods'), safeData);
   return ref.id;
+};
+
+export const firestoreUpdatePaymentCard = async (cardId: string, updates: Partial<FirestorePaymentCard>): Promise<void> => {
+  // Only PCI-safe metadata is ever updated. Raw PAN/CVV are never accepted here.
+  const safeUpdates: Record<string, unknown> = { updatedAt: serverTimestamp() };
+  if (updates.cardholderName !== undefined) safeUpdates.cardholderName = updates.cardholderName.trim();
+  if (updates.label !== undefined) safeUpdates.label = updates.label?.trim() || null;
+  if (updates.billingCountry !== undefined) safeUpdates.billingCountry = updates.billingCountry.trim();
+  if (updates.expiryMonth !== undefined) safeUpdates.expiryMonth = updates.expiryMonth.padStart(2, '0');
+  if (updates.expiryYear !== undefined) safeUpdates.expiryYear = updates.expiryYear.slice(-2);
+  await updateDoc(doc(db, 'paymentMethods', cardId), safeUpdates);
 };
 
 export const firestoreDeletePaymentCard = async (cardId: string): Promise<void> => {
