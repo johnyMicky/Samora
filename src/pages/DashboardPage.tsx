@@ -71,6 +71,7 @@ import {
   type FirestoreCase,
   type FirestoreWithdrawalRequest
 } from '../lib/firestoreService';
+import { fetchCryptoMarketQuotes, type CryptoMarketQuote } from '../lib/cryptoMarket';
 
 type DashboardTab = 'overview' | 'my-case' | 'my-finance' | 'transactions' | 'documents' | 'support' | 'profile';
 
@@ -156,6 +157,39 @@ export const DashboardPage: React.FC = () => {
     status: c.status, createdAt: '', updatedAt: ''
   }));
   const totalBalance = clientAssets.reduce((sum, a) => sum + (Number(a.balance) || 0), 0);
+
+  // Live market quotes are display-only. Recorded balances remain the admin-assigned USD values.
+  const [marketQuotes, setMarketQuotes] = useState<Record<string, CryptoMarketQuote>>({});
+  const [marketLoading, setMarketLoading] = useState(false);
+  const [marketError, setMarketError] = useState(false);
+
+  useEffect(() => {
+    const symbols = [...new Set(clientAssets.map(a => a.symbol?.toUpperCase()).filter(Boolean))];
+    if (!symbols.length) { setMarketQuotes({}); return; }
+    let cancelled = false;
+    const load = async () => {
+      setMarketLoading(true);
+      try {
+        const quotes = await fetchCryptoMarketQuotes(symbols);
+        if (!cancelled) { setMarketQuotes(quotes); setMarketError(false); }
+      } catch {
+        if (!cancelled) setMarketError(true);
+      } finally {
+        if (!cancelled) setMarketLoading(false);
+      }
+    };
+    void load();
+    const timer = window.setInterval(load, 60_000);
+    return () => { cancelled = true; window.clearInterval(timer); };
+  }, [clientAssets.map(a => a.symbol?.toUpperCase()).sort().join('|')]);
+
+  const renderSparkline = (values: number[]) => {
+    if (values.length < 2) return null;
+    const sample = values.filter((_, i) => i % Math.max(1, Math.floor(values.length / 48)) === 0).slice(-48);
+    const min = Math.min(...sample), max = Math.max(...sample), range = max - min || 1;
+    const points = sample.map((v, i) => `${(i / Math.max(1, sample.length - 1)) * 100},${30 - ((v - min) / range) * 28}`).join(' ');
+    return <svg viewBox="0 0 100 32" preserveAspectRatio="none" className="w-full h-12" aria-label="7 day market price chart"><polyline points={points} fill="none" stroke="currentColor" strokeWidth="1.8" vectorEffect="non-scaling-stroke" /></svg>;
+  };
   const [realCases, setRealCases] = useState<FirestoreCase[]>([]);
   const [realWithdrawals, setRealWithdrawals] = useState<FirestoreWithdrawalRequest[]>([]);
 
@@ -1081,6 +1115,36 @@ export const DashboardPage: React.FC = () => {
                                 {asset.label || asset.name}
                               </div>
                             </div>
+
+                            {(() => {
+                              const quote = marketQuotes[asset.symbol?.toUpperCase()];
+                              const tokenAmount = quote && asset.balance > 0 ? asset.balance / quote.priceUsd : null;
+                              return (
+                                <div className="mt-4 rounded-lg border border-[#29292C] bg-[#101012] p-3">
+                                  <div className="flex items-start justify-between gap-3">
+                                    <div>
+                                      <div className="text-[9px] uppercase tracking-widest text-[#737378] font-bold">Live market price</div>
+                                      <div className="text-sm font-mono font-bold text-white mt-1">
+                                        {quote ? `$${quote.priceUsd.toLocaleString('en-US', { maximumFractionDigits: quote.priceUsd < 1 ? 6 : 2 })}` : marketLoading ? 'Loading…' : 'Unavailable'}
+                                      </div>
+                                    </div>
+                                    {quote?.change24h != null && (
+                                      <div className={`text-[10px] font-bold ${quote.change24h >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                                        {quote.change24h >= 0 ? '+' : ''}{quote.change24h.toFixed(2)}% 24h
+                                      </div>
+                                    )}
+                                  </div>
+                                  {quote?.sparkline?.length > 1 && <div className="mt-2 text-[#F5C400]/80">{renderSparkline(quote.sparkline)}</div>}
+                                  <div className="mt-2 pt-2 border-t border-[#29292C] flex items-end justify-between gap-3">
+                                    <span className="text-[9px] uppercase tracking-widest text-[#737378] font-bold">Your estimated holding</span>
+                                    <span className="text-xs font-mono font-bold text-[#F5C400] text-right">
+                                      {tokenAmount != null ? `${tokenAmount.toLocaleString('en-US', { maximumFractionDigits: 8 })} ${asset.symbol}` : asset.balance > 0 ? 'Price unavailable' : `0 ${asset.symbol}`}
+                                    </span>
+                                  </div>
+                                  <div className="mt-1 text-[9px] text-[#5f5f64]">7-day market trend • refreshes every 60s</div>
+                                </div>
+                              );
+                            })()}
 
                             {/* Wallet address with copy */}
                             <div className="mt-4 p-2.5 bg-[#1C1C1E] rounded-lg border border-[#29292C] text-xs font-mono">
