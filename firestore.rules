@@ -22,8 +22,14 @@ service cloud.firestore {
     // 1. Users collection
     match /users/{userId} {
       allow read: if isOwner(userId) || isAdmin();
-      allow create: if isOwner(userId)
-        && request.resource.data.role == 'client';
+      // Self-registration is client-only. Signed-in admins may provision
+      // Client or Administrator profiles; Super Admin creation remains restricted.
+      allow create: if (isOwner(userId) && request.resource.data.role == 'client')
+        || (isAdmin() && request.resource.data.uid == userId && request.resource.data.role in ['client', 'admin'])
+        || (isAdmin()
+            && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'super_admin'
+            && request.resource.data.uid == userId
+            && request.resource.data.role == 'super_admin');
       allow update: if (isOwner(userId) && request.resource.data.role == resource.data.role)
         || isAdmin();
       allow delete: if isAdmin();

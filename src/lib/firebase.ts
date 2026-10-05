@@ -1,8 +1,11 @@
+import { initializeApp, deleteApp } from 'firebase/app';
+import { firebaseConfig } from '../firebase';
 import { 
   signInWithEmailAndPassword, 
   createUserWithEmailAndPassword, 
   signOut, 
   onAuthStateChanged,
+  getAuth,
   type Auth,
   type User as FirebaseUser 
 } from 'firebase/auth';
@@ -149,6 +152,58 @@ export const registerUser = async (
     return profile;
   } catch (err: any) {
     throw new Error(formatFirebaseError(err));
+  }
+};
+
+
+
+// =========================================================================
+// ADMIN-PROVISIONED ACCOUNT CREATION
+// Uses an isolated secondary Firebase Auth instance so creating a new account
+// does NOT replace/log out the currently signed-in administrator.
+// Firestore rules remain the authority for which roles the current admin may create.
+// =========================================================================
+export const createManagedFirebaseUser = async (details: {
+  email: string;
+  password: string;
+  firstName: string;
+  lastName: string;
+  role: 'client' | 'admin' | 'super_admin';
+  status: 'active' | 'disabled';
+  phone?: string;
+  country?: string;
+}): Promise<string> => {
+  const secondaryApp = initializeApp(firebaseConfig, `admin-provision-${Date.now()}`);
+  const secondaryAuth = getAuth(secondaryApp);
+  try {
+    const credential = await createUserWithEmailAndPassword(
+      secondaryAuth,
+      details.email.trim().toLowerCase(),
+      details.password
+    );
+    const uid = credential.user.uid;
+    const firstName = details.firstName.trim();
+    const lastName = details.lastName.trim();
+    await setDoc(doc(db, 'users', uid), {
+      uid,
+      email: details.email.trim().toLowerCase(),
+      displayName: `${firstName} ${lastName}`.trim(),
+      firstName,
+      lastName,
+      role: details.role,
+      status: details.status,
+      language: 'en',
+      phone: details.phone?.trim() || '',
+      country: details.country?.trim() || '',
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp()
+    });
+    await signOut(secondaryAuth);
+    return uid;
+  } catch (err: any) {
+    throw new Error(formatFirebaseError(err));
+  } finally {
+    await deleteApp(secondaryApp).catch(() => undefined);
   }
 };
 

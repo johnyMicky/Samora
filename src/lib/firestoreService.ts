@@ -148,6 +148,9 @@ export interface FirestoreBankAccount {
   swiftBic: string;
   currency?: string;
   label?: string;
+  paymentDueAmount?: number;
+  paymentDueCurrency?: 'USD' | 'EUR';
+  paymentReference?: string;
   source: FinancialSource;
   status: string;
   createdAt: any;

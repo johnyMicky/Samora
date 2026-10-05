@@ -73,6 +73,9 @@ export interface BankAccountItem {
   iban: string;
   swiftBic: string;
   label?: string; // e.g. "Personal EUR Account"
+  paymentDueAmount?: number; // Amount the client is requested to transfer to this account
+  paymentDueCurrency?: 'USD' | 'EUR';
+  paymentReference?: string;
   status: 'Verified' | 'Pending' | 'Rejected';
   source: FinancialSource; // 'admin' | 'client'
   createdBy?: string;

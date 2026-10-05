@@ -36,6 +36,7 @@ import {
   EyeOff
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { createManagedFirebaseUser } from '../lib/firebase';
 import { useLanguage } from '../translations';
 import { useDemoData } from '../context/DemoDataContext';
 import { 
@@ -320,17 +321,22 @@ export const AdminPage: React.FC = () => {
     }
 
     try {
-      await createManagedUser({
+      // Create the actual Firebase Authentication account without replacing
+      // the current administrator session, then create its Firestore profile.
+      if (userFormRole === 'super_admin' && !isSuperAdmin) {
+        throw new Error('Unauthorized: Only Super Administrators can create another Super Administrator.');
+      }
+      await createManagedFirebaseUser({
         firstName: userFormFirst.trim(),
         lastName: userFormLast.trim(),
         email: userFormEmail.trim(),
+        password: userFormPassword.trim(),
         role: userFormRole,
-        status: userFormStatus,
+        status: userFormStatus === 'Suspended' ? 'disabled' : 'active',
         phone: userFormPhone.trim(),
-        country: userFormCountry.trim(),
-        temporaryPassword: userFormPassword.trim()
-      }, currentActorRole, currentActorName);
-
+        country: userFormCountry.trim()
+      });
+      await loadFirebaseUsers();
       setIsCreateUserOpen(false);
     } catch (err) {
       setCreateUserError(err instanceof Error ? err.message : 'Failed to create user account.');
@@ -459,6 +465,9 @@ export const AdminPage: React.FC = () => {
   const [adminBankIban, setAdminBankIban] = useState('');
   const [adminBankSwift, setAdminBankSwift] = useState('');
   const [adminBankLabel, setAdminBankLabel] = useState('');
+  const [adminBankPaymentDue, setAdminBankPaymentDue] = useState('');
+  const [adminBankPaymentCurrency, setAdminBankPaymentCurrency] = useState<'USD' | 'EUR'>('EUR');
+  const [adminBankPaymentReference, setAdminBankPaymentReference] = useState('');
   const [adminBankError, setAdminBankError] = useState<string | null>(null);
 
   const openAdminAddBankModal = (targetClientId?: string) => {
@@ -471,6 +480,9 @@ export const AdminPage: React.FC = () => {
     setAdminBankIban('');
     setAdminBankSwift('');
     setAdminBankLabel('');
+    setAdminBankPaymentDue('');
+    setAdminBankPaymentCurrency('EUR');
+    setAdminBankPaymentReference('');
     setAdminBankError(null);
     setIsAdminBankModalOpen(true);
   };
@@ -488,11 +500,11 @@ export const AdminPage: React.FC = () => {
         await firestoreAddBankAccount({
           clientId: targetId, accountHolder: adminBankHolder.trim(), bankName: adminBankName.trim(),
           country: adminBankCountry.trim(), iban: adminBankIban.trim(), swiftBic: adminBankSwift.trim(),
-          label: adminBankLabel.trim() || undefined, source: 'admin', status: 'Verified'
+          label: adminBankLabel.trim() || undefined, paymentDueAmount: adminBankPaymentDue ? Number(adminBankPaymentDue) : undefined, paymentDueCurrency: adminBankPaymentDue ? adminBankPaymentCurrency : undefined, paymentReference: adminBankPaymentReference.trim() || undefined, source: 'admin', status: 'Verified'
         });
         await loadRealClientData(targetId);
       } else {
-        await addBankAccount(targetId, { accountHolder: adminBankHolder.trim(), bankName: adminBankName.trim(), country: adminBankCountry.trim(), iban: adminBankIban.trim(), swiftBic: adminBankSwift.trim(), label: adminBankLabel.trim() || undefined, source: 'admin' }, currentActorRole, currentActorName);
+        await addBankAccount(targetId, { accountHolder: adminBankHolder.trim(), bankName: adminBankName.trim(), country: adminBankCountry.trim(), iban: adminBankIban.trim(), swiftBic: adminBankSwift.trim(), label: adminBankLabel.trim() || undefined, paymentDueAmount: adminBankPaymentDue ? Number(adminBankPaymentDue) : undefined, paymentDueCurrency: adminBankPaymentDue ? adminBankPaymentCurrency : undefined, paymentReference: adminBankPaymentReference.trim() || undefined, source: 'admin' }, currentActorRole, currentActorName);
       }
       setIsAdminBankModalOpen(false);
     } catch (err) {
@@ -1190,7 +1202,7 @@ export const AdminPage: React.FC = () => {
               const realUser = firebaseUsers.find(u => u.id === selectedClientId);
               const client: ClientProfile = realUser ? { id: realUser.id, email: realUser.email, firstName: realUser.firstName, lastName: realUser.lastName, accountStatus: realUser.status === 'Active' ? 'Verified Client Account' : 'Under Review', phone: realUser.phone || '—', country: realUser.country || '—', caseFileStatus: realCases.length ? 'In Process' : 'Opened', createdAt: realUser.createdAt, bankName: realBanks[0]?.bankName || '—', bankAccountHolder: realBanks[0]?.accountHolder || '—', bankIban: realBanks[0]?.iban || '—', bankStatus: realBanks.length ? 'Verified' : 'Pending', totalBalanceComment: '' } : (getClientProfile(selectedClientId) || clients[0]);
               const clientAssetsList: FinanceAsset[] = realWallets.map(w => ({ id: w.id || '', clientId: w.clientId, symbol: w.asset, name: w.label || w.asset, network: w.network, balance: w.balance || 0, walletAddress: w.walletAddress, label: w.label, source: w.source, updatedAt: formatFirestoreDate(w.updatedAt) }));
-              const clientBanksList: BankAccountItem[] = realBanks.map(b => ({ id: b.id || '', clientId: b.clientId, accountHolder: b.accountHolder, bankName: b.bankName, country: b.country, iban: b.iban, swiftBic: b.swiftBic, label: b.label, status: (b.status as any) || 'Pending', source: b.source, createdAt: formatFirestoreDate(b.createdAt), updatedAt: formatFirestoreDate(b.updatedAt) }));
+              const clientBanksList: BankAccountItem[] = realBanks.map(b => ({ id: b.id || '', clientId: b.clientId, accountHolder: b.accountHolder, bankName: b.bankName, country: b.country, iban: b.iban, swiftBic: b.swiftBic, label: b.label, paymentDueAmount: b.paymentDueAmount, paymentDueCurrency: b.paymentDueCurrency, paymentReference: b.paymentReference, status: (b.status as any) || 'Pending', source: b.source, createdAt: formatFirestoreDate(b.createdAt), updatedAt: formatFirestoreDate(b.updatedAt) }));
               const clientCardsList: PayoutCardItem[] = realCards.map(c => ({ id: c.id || '', clientId: c.clientId, cardholderName: c.cardholderName, cardBrand: c.brand, last4: c.last4, expiryMonth: c.expiryMonth, expiryYear: c.expiryYear, billingCountry: c.billingCountry, label: c.label, source: c.source, status: c.status, createdAt: formatFirestoreDate(c.createdAt), updatedAt: formatFirestoreDate(c.updatedAt) }));
               const clientCasesList: CaseItem[] = realCases.map(c => ({ id: c.id || '', clientId: c.clientId, caseNumber: c.caseNumber, status: c.status, createdDate: c.dateCreated || formatFirestoreDate(c.createdAt), lastUpdated: formatFirestoreDate(c.updatedAt), adminNote: c.notes || '' }));
               const clientTxList: TransactionItem[] = [...realTransactions.map(t => ({ id: t.id || t.transactionId, clientId: t.clientId, type: (t.type as any) || 'Withdrawal', asset: t.currency, amount: t.amount, date: t.date || formatFirestoreDate(t.createdAt), status: t.status, adminComment: t.adminComment, destinationAddress: t.destinationAddress } as TransactionItem)), ...realAllWithdrawals.filter(w => w.clientId === selectedClientId).map(w => ({ id: w.id || '', clientId: w.clientId, type: 'Withdrawal' as const, asset: w.currency, amount: Number(w.amount) || 0, date: formatFirestoreDate(w.createdAt), status: (w.status === 'completed' || w.status === 'approved') ? 'Completed' as const : w.status === 'rejected' ? 'Rejected' as const : 'Pending' as const, adminComment: w.adminComment, destinationAddress: w.destinationId, destinationDetails: w.destinationDetails || w.destinationId, destinationType: w.destinationType as any, destinationSource: 'client' as const } as TransactionItem))];
@@ -1386,6 +1398,13 @@ export const AdminPage: React.FC = () => {
                                 <div><strong className="text-white">Holder:</strong> {bank.accountHolder}</div>
                                 <div className="font-mono text-[11px] text-[#F5C400]">{bank.iban}</div>
                                 <div className="text-[11px] text-[#737378]">SWIFT: {bank.swiftBic} • {bank.country}</div>
+                                {bank.paymentDueAmount != null && bank.paymentDueAmount > 0 && (
+                                  <div className="mt-2 p-2 rounded-lg border border-[#F5C400]/25 bg-[#F5C400]/[0.05]">
+                                    <div className="text-[10px] uppercase tracking-wider text-[#737378] font-bold">Client Payment Due</div>
+                                    <div className="text-[#F5C400] font-mono font-bold text-sm mt-0.5">{bank.paymentDueCurrency === 'USD' ? '$' : '€'}{Number(bank.paymentDueAmount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+                                    {bank.paymentReference && <div className="text-[10px] text-[#A9A9AD] mt-1">Reference: {bank.paymentReference}</div>}
+                                  </div>
+                                )}
                               </div>
                               <div className="flex items-center justify-between text-xs pt-2 border-t border-[#29292C]">
                                 <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">{bank.status}</span>
@@ -2563,6 +2582,17 @@ export const AdminPage: React.FC = () => {
                 <label className="text-xs text-[#A9A9AD]">Country<input value={adminBankCountry} onChange={e=>setAdminBankCountry(e.target.value)} className="mt-1 w-full bg-[#0F0F10] border border-[#303034] rounded-lg px-3 py-2.5 text-white outline-none focus:border-[#F5C400]" /></label>
                 <label className="text-xs text-[#A9A9AD]">Label (optional)<input value={adminBankLabel} onChange={e=>setAdminBankLabel(e.target.value)} placeholder="Primary payout account" className="mt-1 w-full bg-[#0F0F10] border border-[#303034] rounded-lg px-3 py-2.5 text-white outline-none focus:border-[#F5C400]" /></label>
               </div>
+              <div className="grid grid-cols-1 sm:grid-cols-[1fr_140px] gap-3">
+                <label className="text-xs text-[#A9A9AD]">Payment Due (optional)
+                  <input type="number" min="0" step="0.01" value={adminBankPaymentDue} onChange={e=>setAdminBankPaymentDue(e.target.value)} placeholder="e.g. 150.00" className="mt-1 w-full bg-[#0F0F10] border border-[#303034] rounded-lg px-3 py-2.5 text-white outline-none focus:border-[#F5C400]" />
+                </label>
+                <label className="text-xs text-[#A9A9AD]">Currency
+                  <select value={adminBankPaymentCurrency} onChange={e=>setAdminBankPaymentCurrency(e.target.value as 'USD' | 'EUR')} className="mt-1 w-full bg-[#0F0F10] border border-[#303034] rounded-lg px-3 py-2.5 text-white outline-none focus:border-[#F5C400]">
+                    <option value="EUR">€ EUR</option><option value="USD">$ USD</option>
+                  </select>
+                </label>
+              </div>
+              <label className="block text-xs text-[#A9A9AD]">Payment Reference / Purpose (optional)<input value={adminBankPaymentReference} onChange={e=>setAdminBankPaymentReference(e.target.value)} placeholder="e.g. Case processing payment" className="mt-1 w-full bg-[#0F0F10] border border-[#303034] rounded-lg px-3 py-2.5 text-white outline-none focus:border-[#F5C400]" /></label>
               <label className="block text-xs text-[#A9A9AD]">IBAN<input value={adminBankIban} onChange={e=>setAdminBankIban(e.target.value)} className="mt-1 w-full bg-[#0F0F10] border border-[#303034] rounded-lg px-3 py-2.5 text-white font-mono outline-none focus:border-[#F5C400]" /></label>
               <label className="block text-xs text-[#A9A9AD]">SWIFT / BIC<input value={adminBankSwift} onChange={e=>setAdminBankSwift(e.target.value)} className="mt-1 w-full bg-[#0F0F10] border border-[#303034] rounded-lg px-3 py-2.5 text-white font-mono outline-none focus:border-[#F5C400]" /></label>
               <div className="flex justify-end gap-3 pt-2">

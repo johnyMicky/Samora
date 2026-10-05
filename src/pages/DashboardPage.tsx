@@ -148,6 +148,7 @@ export const DashboardPage: React.FC = () => {
   const clientBankAccounts: BankAccountItem[] = realBanks.map(b => ({
     id: b.id || '', clientId: b.clientId, accountHolder: b.accountHolder, bankName: b.bankName,
     country: b.country, iban: b.iban, swiftBic: b.swiftBic, label: b.label,
+    paymentDueAmount: b.paymentDueAmount, paymentDueCurrency: b.paymentDueCurrency, paymentReference: b.paymentReference,
     status: b.status as BankAccountItem['status'], source: b.source, createdAt: '', updatedAt: ''
   }));
   const clientPayoutCards: PayoutCardItem[] = realCards.map(c => ({
@@ -1259,6 +1260,19 @@ export const DashboardPage: React.FC = () => {
                             </div>
                             {getSourceBadge(bank.source)}
                           </div>
+
+                          {bank.paymentDueAmount != null && bank.paymentDueAmount > 0 && (
+                            <div className="rounded-lg border border-[#F5C400]/35 bg-[#F5C400]/[0.06] p-3 flex items-center justify-between gap-3">
+                              <div>
+                                <div className="text-[10px] uppercase tracking-wider font-bold text-[#8B8B90]">Payment Due</div>
+                                <div className="text-[11px] text-[#A9A9AD] mt-0.5">Transfer the requested amount to this verified account.</div>
+                                {bank.paymentReference && <div className="text-[11px] text-[#A9A9AD] mt-1">Reference: <span className="text-white font-medium">{bank.paymentReference}</span></div>}
+                              </div>
+                              <div className="text-lg font-bold text-[#F5C400] font-mono whitespace-nowrap">
+                                {bank.paymentDueCurrency === 'USD' ? '$' : '€'}{Number(bank.paymentDueAmount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                              </div>
+                            </div>
+                          )}
 
                           <div className="grid grid-cols-2 gap-3 text-xs bg-[#1C1C1E] p-3 rounded-lg border border-[#29292C]">
                             <div>

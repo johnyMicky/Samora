@@ -77,7 +77,7 @@ interface DemoDataContextType {
   // Bank Account Actions
   addBankAccount: (
     clientId: string,
-    data: { accountHolder: string; bankName: string; country: string; iban: string; swiftBic: string; label?: string; source: FinancialSource },
+    data: { accountHolder: string; bankName: string; country: string; iban: string; swiftBic: string; label?: string; paymentDueAmount?: number; paymentDueCurrency?: 'USD' | 'EUR'; paymentReference?: string; source: FinancialSource },
     actorRole?: UserRole,
     actorName?: string
   ) => Promise<BankAccountItem>;
@@ -396,7 +396,7 @@ export const DemoDataProvider: React.FC<{ children: ReactNode }> = ({ children }
   // =========================================================================
   const addBankAccount = async (
     clientId: string,
-    data: { accountHolder: string; bankName: string; country: string; iban: string; swiftBic: string; label?: string; source: FinancialSource },
+    data: { accountHolder: string; bankName: string; country: string; iban: string; swiftBic: string; label?: string; paymentDueAmount?: number; paymentDueCurrency?: 'USD' | 'EUR'; paymentReference?: string; source: FinancialSource },
     actorRole: UserRole = 'client',
     actorName: string = 'Demo Client'
   ): Promise<BankAccountItem> => {
@@ -413,6 +413,9 @@ export const DemoDataProvider: React.FC<{ children: ReactNode }> = ({ children }
       iban: data.iban.trim(),
       swiftBic: data.swiftBic.trim(),
       label: data.label?.trim() || undefined,
+      paymentDueAmount: data.paymentDueAmount,
+      paymentDueCurrency: data.paymentDueCurrency,
+      paymentReference: data.paymentReference?.trim() || undefined,
       status: 'Verified',
       source: data.source,
       createdBy: actorName,
@@ -705,9 +708,10 @@ export const DemoDataProvider: React.FC<{ children: ReactNode }> = ({ children }
     actorRole: UserRole,
     actorName: string
   ): Promise<ManagedUserItem> => {
-    // Permission guard: Only Super Admin can create Administrators
-    if (userData.role !== 'client' && actorRole !== 'super_admin') {
-      throw new Error('Unauthorized: Only Super Administrators can create administrative users.');
+    // Administrators may create Client or Administrator accounts.
+    // Only an existing Super Administrator may create another Super Administrator.
+    if (userData.role === 'super_admin' && actorRole !== 'super_admin') {
+      throw new Error('Unauthorized: Only Super Administrators can create another Super Administrator.');
     }
 
     const normalizedEmail = userData.email.trim().toLowerCase();
