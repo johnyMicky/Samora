@@ -295,12 +295,25 @@ export const firestoreGetWithdrawalRequests = async (clientId?: string): Promise
 export const firestoreCreateWithdrawalRequest = async (
   request: Omit<FirestoreWithdrawalRequest, 'id' | 'createdAt' | 'updatedAt'>
 ): Promise<string> => {
-  const ref = await addDoc(collection(db, 'withdrawalRequests'), {
-    ...request,
+  // Firestore rejects `undefined` field values. Build the payload explicitly and
+  // include optional strings only when they contain a real value.
+  const payload: Record<string, unknown> = {
+    clientId: request.clientId,
+    amount: request.amount,
+    currency: request.currency,
+    destinationType: request.destinationType,
+    destinationId: request.destinationId,
     status: 'pending', // Client submissions are strictly pending by default
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp()
-  });
+  };
+
+  const destinationDetails = request.destinationDetails?.trim();
+  const note = request.note?.trim();
+  if (destinationDetails) payload.destinationDetails = destinationDetails;
+  if (note) payload.note = note;
+
+  const ref = await addDoc(collection(db, 'withdrawalRequests'), payload);
   return ref.id;
 };
 

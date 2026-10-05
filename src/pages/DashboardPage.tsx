@@ -512,7 +512,7 @@ export const DashboardPage: React.FC = () => {
         destinationType: targetDest.type,
         destinationId: targetDest.id,
         destinationDetails: `${targetDest.title} (${targetDest.details})`,
-        note: withdrawNote.trim() || undefined,
+        note: withdrawNote.trim(),
         status: 'pending'
       });
 
@@ -524,8 +524,17 @@ export const DashboardPage: React.FC = () => {
         setWithdrawAmount('');
         setWithdrawNote('');
       }, 1600);
-    } catch {
-      setWithdrawError('Failed to submit withdrawal request. Please retry.');
+    } catch (err: any) {
+      console.error('Withdrawal request failed:', err);
+      const code = err?.code ? String(err.code).replace('firestore/', '') : '';
+      const message = err?.message ? String(err.message) : '';
+      if (code === 'permission-denied' || message.includes('permission')) {
+        setWithdrawError('Withdrawal could not be submitted because Firestore denied the request. Please contact support.');
+      } else if (code === 'invalid-argument' || message.includes('Unsupported field value')) {
+        setWithdrawError('Withdrawal contains an invalid value. Please review the fields and retry.');
+      } else {
+        setWithdrawError(`Failed to submit withdrawal request${code ? ` (${code})` : ''}. Please retry.`);
+      }
     }
   };
 
