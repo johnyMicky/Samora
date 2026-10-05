@@ -404,3 +404,16 @@ export const firestoreLogActivity = async (log: Omit<FirestoreActivityLog, 'id' 
     console.warn('Firestore: Could not log activity:', err);
   }
 };
+
+
+// ADMIN CASE MANAGEMENT
+export const firestoreAddCase = async (caseData: Omit<FirestoreCase, 'id' | 'createdAt' | 'updatedAt'>): Promise<string> => {
+  const ref = await addDoc(collection(db, 'cases'), { ...caseData, createdAt: serverTimestamp(), updatedAt: serverTimestamp() });
+  return ref.id;
+};
+export const firestoreUpdateCase = async (caseId: string, updates: Partial<FirestoreCase>): Promise<void> => {
+  await updateDoc(doc(db, 'cases', caseId), { ...updates, updatedAt: serverTimestamp() });
+};
+export const firestoreDeleteCase = async (caseId: string): Promise<void> => {
+  await deleteDoc(doc(db, 'cases', caseId));
+};

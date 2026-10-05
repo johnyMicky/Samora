@@ -54,7 +54,14 @@ import {
   type FinancialSource
 } from '../lib/demoData';
 import { LanguageSwitcher } from '../App';
-import { firestoreGetAllUserProfiles, type FirestoreUserProfile } from '../lib/firestoreService';
+import {
+  firestoreGetAllUserProfiles, firestoreGetWalletsForClient, firestoreGetBankAccountsForClient,
+  firestoreGetPaymentCardsForClient, firestoreGetCasesForClient, firestoreGetTransactionsForClient,
+  firestoreGetDocumentsForClient, firestoreAddWallet, firestoreAddPaymentCard, firestoreAddCase,
+  firestoreUpdateCase, firestoreDeleteCase,
+  type FirestoreUserProfile, type FirestoreWallet, type FirestoreBankAccount, type FirestorePaymentCard,
+  type FirestoreCase, type FirestoreTransaction, type FirestoreDocument
+} from '../lib/firestoreService';
 
 type AdminTab = 'overview' | 'clients' | 'cases' | 'finance' | 'transactions' | 'documents' | 'activity-log';
 type UserFilter = 'ALL' | 'CLIENTS' | 'ADMINS' | 'ACTIVE' | 'PENDING' | 'SUSPENDED';
@@ -182,6 +189,27 @@ export const AdminPage: React.FC = () => {
   // Selected Client for Detailed Dossier Inspection
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
   const [clientDetailTab, setClientDetailTab] = useState<'overview' | 'cases' | 'finance' | 'transactions' | 'documents'>('overview');
+  const [realWallets, setRealWallets] = useState<FirestoreWallet[]>([]);
+  const [realBanks, setRealBanks] = useState<FirestoreBankAccount[]>([]);
+  const [realCards, setRealCards] = useState<FirestorePaymentCard[]>([]);
+  const [realCases, setRealCases] = useState<FirestoreCase[]>([]);
+  const [realTransactions, setRealTransactions] = useState<FirestoreTransaction[]>([]);
+  const [realDocuments, setRealDocuments] = useState<FirestoreDocument[]>([]);
+  const [clientDataLoading, setClientDataLoading] = useState(false);
+
+  const loadRealClientData = async (clientId: string) => {
+    setClientDataLoading(true);
+    try {
+      const [w,b,c,ca,t,d] = await Promise.all([
+        firestoreGetWalletsForClient(clientId), firestoreGetBankAccountsForClient(clientId),
+        firestoreGetPaymentCardsForClient(clientId), firestoreGetCasesForClient(clientId),
+        firestoreGetTransactionsForClient(clientId), firestoreGetDocumentsForClient(clientId)
+      ]);
+      setRealWallets(w); setRealBanks(b); setRealCards(c); setRealCases(ca); setRealTransactions(t); setRealDocuments(d);
+    } finally { setClientDataLoading(false); }
+  };
+
+  useEffect(() => { if (selectedClientId) void loadRealClientData(selectedClientId); }, [selectedClientId]);
 
   // =========================================================================
   // USER MANAGEMENT MODAL STATES
@@ -365,15 +393,14 @@ export const AdminPage: React.FC = () => {
     e.preventDefault();
     if (!caseFormNumber.trim()) return;
 
-    if (editingCase) {
-      updateCase(editingCase.id, {
-        caseNumber: caseFormNumber.trim(),
-        status: caseFormStatus,
-        adminNote: caseFormNote.trim()
-      }, currentActorName);
-    } else {
-      createCase(caseFormClient, caseFormNumber.trim(), caseFormStatus, caseFormNote.trim(), currentActorName);
-    }
+    if (selectedClientId) {
+      const action = editingCase
+        ? firestoreUpdateCase(editingCase.id, { caseNumber: caseFormNumber.trim(), status: caseFormStatus, notes: caseFormNote.trim() })
+        : firestoreAddCase({ clientId: selectedClientId, caseNumber: caseFormNumber.trim(), title: 'Client Case', status: caseFormStatus, dateCreated: new Date().toISOString(), notes: caseFormNote.trim() });
+      void action.then(() => loadRealClientData(selectedClientId));
+    } else if (editingCase) {
+      updateCase(editingCase.id, { caseNumber: caseFormNumber.trim(), status: caseFormStatus, adminNote: caseFormNote.trim() }, currentActorName);
+    } else { createCase(caseFormClient, caseFormNumber.trim(), caseFormStatus, caseFormNote.trim(), currentActorName); }
     setIsCaseModalOpen(false);
   };
 
@@ -406,26 +433,11 @@ export const AdminPage: React.FC = () => {
     e.preventDefault();
     const balanceNum = parseFloat(assetFormBalance) || 0;
 
-    if (editingAsset) {
-      updateAsset(editingAsset.id, {
-        symbol: assetFormSymbol,
-        name: assetFormName,
-        network: assetFormNetwork,
-        balance: balanceNum,
-        walletAddress: assetFormWallet.trim(),
-        comment: assetFormComment.trim() || undefined
-      }, currentActorName);
-    } else {
-      addAsset(assetFormClient, {
-        symbol: assetFormSymbol,
-        name: assetFormName,
-        network: assetFormNetwork,
-        balance: balanceNum,
-        walletAddress: assetFormWallet.trim(),
-        source: 'admin',
-        comment: assetFormComment.trim() || undefined
-      }, currentActorName);
-    }
+    if (selectedClientId && !editingAsset) {
+      void firestoreAddWallet({ clientId: selectedClientId, asset: assetFormSymbol, network: assetFormNetwork, walletAddress: assetFormWallet.trim(), label: assetFormName, source: 'admin', status: 'Active', balance: balanceNum }).then(() => loadRealClientData(selectedClientId));
+    } else if (editingAsset) {
+      updateAsset(editingAsset.id, { symbol: assetFormSymbol, name: assetFormName, network: assetFormNetwork, balance: balanceNum, walletAddress: assetFormWallet.trim(), comment: assetFormComment.trim() || undefined }, currentActorName);
+    } else { addAsset(assetFormClient, { symbol: assetFormSymbol, name: assetFormName, network: assetFormNetwork, balance: balanceNum, walletAddress: assetFormWallet.trim(), source: 'admin', comment: assetFormComment.trim() || undefined }, currentActorName); }
     setIsAssetModalOpen(false);
   };
 
@@ -519,16 +531,12 @@ export const AdminPage: React.FC = () => {
     setAdminCardCvv('');
     setAdminCardRawNumber('');
 
-    await addPayoutCard(adminCardTargetClient, {
-      cardholderName: holder,
-      cardBrand: adminCardBrand,
-      last4: last4,
-      expiryMonth: formattedExpMonth,
-      expiryYear: formattedExpYear,
-      billingCountry: adminCardCountry.trim() || 'Germany',
-      label: adminCardLabel.trim() || undefined,
-      source: 'admin'
-    }, currentActorRole, currentActorName);
+    if (selectedClientId) {
+      await firestoreAddPaymentCard({ clientId: selectedClientId, cardholderName: holder, brand: adminCardBrand, last4, expiryMonth: formattedExpMonth, expiryYear: formattedExpYear, billingCountry: adminCardCountry.trim() || 'Germany', label: adminCardLabel.trim() || undefined, source: 'admin', status: 'Active' });
+      await loadRealClientData(selectedClientId);
+    } else {
+      await addPayoutCard(adminCardTargetClient, { cardholderName: holder, cardBrand: adminCardBrand, last4, expiryMonth: formattedExpMonth, expiryYear: formattedExpYear, billingCountry: adminCardCountry.trim() || 'Germany', label: adminCardLabel.trim() || undefined, source: 'admin' }, currentActorRole, currentActorName);
+    }
 
     setIsAdminCardModalOpen(false);
   };
@@ -1114,14 +1122,15 @@ export const AdminPage: React.FC = () => {
 
             {/* TAB: CLIENT DOSSIER DETAIL INSPECTION (when client is selected) */}
             {selectedClientId && (() => {
-              const client = getClientProfile(selectedClientId) || clients[0];
-              const clientAssetsList = getClientAssets(client.id);
-              const clientBanksList = getClientBankAccounts(client.id);
-              const clientCardsList = getClientPayoutCards(client.id);
-              const clientCasesList = getClientCases(client.id);
-              const clientTxList = getClientTransactions(client.id);
-              const clientDocsList = getClientDocuments(client.id);
-              const clientTotal = getClientTotalBalance(client.id);
+              const realUser = firebaseUsers.find(u => u.id === selectedClientId);
+              const client: ClientProfile = realUser ? { id: realUser.id, email: realUser.email, firstName: realUser.firstName, lastName: realUser.lastName, accountStatus: realUser.status === 'Active' ? 'Verified Client Account' : 'Under Review', phone: realUser.phone || '—', country: realUser.country || '—', caseFileStatus: realCases.length ? 'In Process' : 'Opened', createdAt: realUser.createdAt, bankName: realBanks[0]?.bankName || '—', bankAccountHolder: realBanks[0]?.accountHolder || '—', bankIban: realBanks[0]?.iban || '—', bankStatus: realBanks.length ? 'Verified' : 'Pending', totalBalanceComment: '' } : (getClientProfile(selectedClientId) || clients[0]);
+              const clientAssetsList: FinanceAsset[] = realWallets.map(w => ({ id: w.id || '', clientId: w.clientId, symbol: w.asset, name: w.label || w.asset, network: w.network, balance: w.balance || 0, walletAddress: w.walletAddress, label: w.label, source: w.source, updatedAt: formatFirestoreDate(w.updatedAt) }));
+              const clientBanksList: BankAccountItem[] = realBanks.map(b => ({ id: b.id || '', clientId: b.clientId, accountHolder: b.accountHolder, bankName: b.bankName, country: b.country, iban: b.iban, swiftBic: b.swiftBic, label: b.label, status: (b.status as any) || 'Pending', source: b.source, createdAt: formatFirestoreDate(b.createdAt), updatedAt: formatFirestoreDate(b.updatedAt) }));
+              const clientCardsList: PayoutCardItem[] = realCards.map(c => ({ id: c.id || '', clientId: c.clientId, cardholderName: c.cardholderName, cardBrand: c.brand, last4: c.last4, expiryMonth: c.expiryMonth, expiryYear: c.expiryYear, billingCountry: c.billingCountry, label: c.label, source: c.source, status: c.status, createdAt: formatFirestoreDate(c.createdAt), updatedAt: formatFirestoreDate(c.updatedAt) }));
+              const clientCasesList: CaseItem[] = realCases.map(c => ({ id: c.id || '', clientId: c.clientId, caseNumber: c.caseNumber, status: c.status, createdDate: c.dateCreated || formatFirestoreDate(c.createdAt), lastUpdated: formatFirestoreDate(c.updatedAt), adminNote: c.notes || '' }));
+              const clientTxList: TransactionItem[] = realTransactions.map(t => ({ id: t.id || t.transactionId, clientId: t.clientId, type: (t.type as any) || 'Withdrawal', asset: t.currency, amount: t.amount, date: t.date || formatFirestoreDate(t.createdAt), status: t.status, adminComment: t.adminComment, destinationAddress: t.destinationAddress }));
+              const clientDocsList = realDocuments.map(d => ({ id: d.id || '', clientId: d.clientId, name: d.fileName, fileType: d.fileName.split('.').pop() || 'file', fileSize: d.fileSize, caseNumber: d.caseNumber, uploadDate: d.uploadDate || formatFirestoreDate(d.createdAt), status: d.status === 'Verified' ? 'Accepted' : d.status === 'Rejected' ? 'Rejected' : 'New' } as any));
+              const clientTotal = realWallets.reduce((sum, w) => sum + (Number(w.balance) || 0), 0);
 
               return (
                 <div className="space-y-6">
