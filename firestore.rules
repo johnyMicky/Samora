@@ -1,0 +1,84 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && (
+        request.auth.token.role == 'admin' ||
+        request.auth.token.role == 'super_admin' ||
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['admin', 'super_admin']
+      );
+    }
+
+    // 1. Users collection
+    match /users/{userId} {
+      allow read: if isOwner(userId) || isAdmin();
+      allow create: if isOwner(userId)
+        && request.resource.data.role == 'client';
+      allow update: if (isOwner(userId) && request.resource.data.role == resource.data.role)
+        || isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // 2. Cases collection
+    match /cases/{caseId} {
+      allow read: if (isAuthenticated() && resource.data.clientId == request.auth.uid) || isAdmin();
+      allow write: if isAdmin();
+    }
+
+    // 3. Crypto Wallets
+    match /wallets/{walletId} {
+      allow read: if (isAuthenticated() && resource.data.clientId == request.auth.uid) || isAdmin();
+      allow create: if (isAuthenticated() && request.resource.data.clientId == request.auth.uid) || isAdmin();
+      allow update, delete: if (isAuthenticated() && resource.data.clientId == request.auth.uid && resource.data.source == 'client') || isAdmin();
+    }
+
+    // 4. Bank Accounts
+    match /bankAccounts/{accountId} {
+      allow read: if (isAuthenticated() && resource.data.clientId == request.auth.uid) || isAdmin();
+      allow create: if (isAuthenticated() && request.resource.data.clientId == request.auth.uid) || isAdmin();
+      allow update, delete: if (isAuthenticated() && resource.data.clientId == request.auth.uid && resource.data.source == 'client') || isAdmin();
+    }
+
+    // 5. Payment Methods (Cards — safe metadata only, NO CVV / RAW PAN)
+    match /paymentMethods/{cardId} {
+      allow read: if (isAuthenticated() && resource.data.clientId == request.auth.uid) || isAdmin();
+      allow create: if (isAuthenticated() && request.resource.data.clientId == request.auth.uid) || isAdmin();
+      allow update, delete: if (isAuthenticated() && resource.data.clientId == request.auth.uid && resource.data.source == 'client') || isAdmin();
+    }
+
+    // 6. Transactions
+    match /transactions/{transactionId} {
+      allow read: if (isAuthenticated() && resource.data.clientId == request.auth.uid) || isAdmin();
+      allow write: if isAdmin();
+    }
+
+    // 7. Documents
+    match /documents/{docId} {
+      allow read: if (isAuthenticated() && resource.data.clientId == request.auth.uid) || isAdmin();
+      allow create: if (isAuthenticated() && request.resource.data.clientId == request.auth.uid) || isAdmin();
+      allow update, delete: if isAdmin();
+    }
+
+    // 8. Withdrawal Requests
+    match /withdrawalRequests/{requestId} {
+      allow read: if (isAuthenticated() && resource.data.clientId == request.auth.uid) || isAdmin();
+      allow create: if isAuthenticated() && request.resource.data.clientId == request.auth.uid && request.resource.data.status == 'pending';
+      allow update, delete: if isAdmin();
+    }
+
+    // 9. Activity Logs
+    match /activityLogs/{logId} {
+      allow read, write: if isAdmin();
+    }
+  }
+}

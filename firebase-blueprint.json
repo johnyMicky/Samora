@@ -1,0 +1,54 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile with role-based access control for client and administrator areas.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "The unique user identifier matching Firebase Auth UID."
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "description": "The user's registered email address."
+        },
+        "firstName": {
+          "type": "string",
+          "description": "The user's first name."
+        },
+        "lastName": {
+          "type": "string",
+          "description": "The user's last name."
+        },
+        "phone": {
+          "type": "string",
+          "description": "The user's phone number."
+        },
+        "country": {
+          "type": "string",
+          "description": "The user's country of residence."
+        },
+        "role": {
+          "type": "string",
+          "enum": ["client", "admin"],
+          "description": "User authorization role. Default for new users is client. Elevation to admin requires trusted server/admin operations."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp when the user account was created."
+        }
+      },
+      "required": ["id", "email", "firstName", "lastName", "role"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": {
+        "$ref": "#/entities/User"
+      },
+      "description": "User profiles indexed by UID. Users may read their own document, admins may read all documents, and role elevation by regular clients is prohibited."
+    }
+  }
+}

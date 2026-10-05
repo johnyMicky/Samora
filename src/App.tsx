@@ -28,10 +28,19 @@ import {
   Database,
   FileText,
   HelpCircle,
-  ShieldAlert
+  ShieldAlert,
+  LogOut,
+  User as UserIcon
 } from 'lucide-react';
 import { cn } from './lib/utils';
 import { LanguageProvider, useLanguage } from './translations';
+import { AuthProvider, useAuth } from './context/AuthContext';
+import { DemoDataProvider } from './context/DemoDataContext';
+import { ProtectedRoute } from './components/ProtectedRoute';
+import { LoginPage } from './pages/LoginPage';
+import { RegisterPage } from './pages/RegisterPage';
+import { DashboardPage } from './pages/DashboardPage';
+import { AdminPage } from './pages/AdminPage';
 
 // --- Scroll to Top Component ---
 const ScrollToTop = () => {
@@ -43,7 +52,7 @@ const ScrollToTop = () => {
 };
 
 // --- Language Switcher Component ---
-const LanguageSwitcher = ({ className }: { className?: string }) => {
+export const LanguageSwitcher = ({ className }: { className?: string }) => {
   const { language, setLanguage } = useLanguage();
 
   return (
@@ -84,6 +93,7 @@ const LanguageSwitcher = ({ className }: { className?: string }) => {
 
 const Navbar = () => {
   const { t } = useLanguage();
+  const { user, logout } = useAuth();
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const location = useLocation();
@@ -137,9 +147,43 @@ const Navbar = () => {
             )
           ))}
           <LanguageSwitcher />
-          <Link to="/contact" className="bg-[#F5C400] hover:bg-[#FFD000] text-[#0B0B0C] px-5 py-2.5 rounded-full text-sm font-bold transition-all shadow-lg shadow-[#F5C400]/20 border border-[#F5C400] active:scale-95">
-            {t.nav.caseAssessment}
-          </Link>
+
+          {/* Header Buttons: LOGIN / REGISTER (or DASHBOARD / LOGOUT) */}
+          {user ? (
+            <div className="flex items-center gap-2.5">
+              <Link
+                to={user.role === 'admin' ? '/admin' : '/dashboard'}
+                className="bg-[#F5C400] hover:bg-[#FFD000] text-[#0B0B0C] px-4 py-2 rounded-full text-xs font-bold transition-all shadow-md shadow-[#F5C400]/20 border border-[#F5C400] active:scale-95 flex items-center gap-1.5"
+              >
+                <Shield className="w-3.5 h-3.5" />
+                <span>{user.role === 'admin' ? t.nav.admin : t.nav.dashboard}</span>
+              </Link>
+              <button
+                type="button"
+                onClick={() => logout()}
+                className="bg-[#1C1C1E] hover:bg-red-500/10 text-red-400 hover:text-red-300 border border-[#29292C] hover:border-red-500/30 px-3 py-2 rounded-full text-xs font-bold transition-all flex items-center gap-1 cursor-pointer"
+                title="Log out"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+                <span className="hidden lg:inline">{t.nav.logout}</span>
+              </button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2.5">
+              <Link
+                to="/login"
+                className="bg-[#1C1C1E] hover:bg-[#252528] text-white hover:text-[#F5C400] border border-[#29292C] hover:border-[#F5C400]/50 px-4 py-2 rounded-full text-xs font-bold transition-all cursor-pointer"
+              >
+                {t.nav.login}
+              </Link>
+              <Link
+                to="/register"
+                className="bg-[#F5C400] hover:bg-[#FFD000] text-[#0B0B0C] px-4 py-2 rounded-full text-xs font-bold transition-all shadow-md shadow-[#F5C400]/20 border border-[#F5C400] active:scale-95 cursor-pointer"
+              >
+                {t.nav.register}
+              </Link>
+            </div>
+          )}
         </div>
 
         {/* Mobile Menu Toggle & Compact Switcher */}
@@ -189,9 +233,48 @@ const Navbar = () => {
               <div className="pt-2 flex justify-start">
                 <LanguageSwitcher />
               </div>
-              <Link to="/contact" onClick={() => setIsMobileMenuOpen(false)} className="bg-[#F5C400] hover:bg-[#FFD000] text-[#0B0B0C] px-5 py-3 rounded-xl text-center font-bold border border-[#F5C400]">
-                {t.nav.caseAssessment}
-              </Link>
+
+              {/* Mobile Auth Buttons */}
+              {user ? (
+                <div className="flex flex-col gap-2 pt-2">
+                  <Link
+                    to={user.role === 'admin' ? '/admin' : '/dashboard'}
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="bg-[#F5C400] hover:bg-[#FFD000] text-[#0B0B0C] px-5 py-3 rounded-xl text-center font-bold border border-[#F5C400] flex items-center justify-center gap-2"
+                  >
+                    <Shield className="w-4 h-4" />
+                    <span>{user.role === 'admin' ? t.nav.admin : t.nav.dashboard}</span>
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      logout();
+                      setIsMobileMenuOpen(false);
+                    }}
+                    className="bg-[#1C1C1E] text-red-400 hover:bg-red-500/10 border border-[#29292C] px-5 py-3 rounded-xl text-center font-bold flex items-center justify-center gap-2"
+                  >
+                    <LogOut className="w-4 h-4" />
+                    <span>{t.nav.logout}</span>
+                  </button>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-3 pt-2">
+                  <Link
+                    to="/login"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="bg-[#1C1C1E] hover:bg-[#252528] text-white border border-[#29292C] px-4 py-3 rounded-xl text-center font-bold transition-all text-sm"
+                  >
+                    {t.nav.login}
+                  </Link>
+                  <Link
+                    to="/register"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="bg-[#F5C400] hover:bg-[#FFD000] text-[#0B0B0C] px-4 py-3 rounded-xl text-center font-bold border border-[#F5C400] transition-all text-sm shadow-md shadow-[#F5C400]/20"
+                  >
+                    {t.nav.register}
+                  </Link>
+                </div>
+              )}
             </div>
           </motion.div>
         )}
@@ -1673,26 +1756,48 @@ const ContactPage = () => (
 export default function App() {
   return (
     <LanguageProvider>
-      <Router>
-        <ScrollToTop />
-        <Routes>
-          <Route path="/" element={<Layout />}>
-            <Route index element={<HomePage />} />
-            <Route path="about" element={<AboutPage />} />
-            <Route path="team" element={<TeamPage />} />
-            <Route path="case-studies" element={<CaseStudiesPage />} />
-            <Route path="contact" element={<ContactPage />} />
-            <Route path="blog" element={<BlogPage />} />
-            <Route path="database" element={<DatabasePage />} />
-            <Route path="guides" element={<GuidesPage />} />
-            <Route path="faq" element={<FAQPage />} />
-            <Route path="privacy" element={<PrivacyPage />} />
-            <Route path="terms" element={<TermsPage />} />
-            <Route path="aml-kyc" element={<AmlKycPage />} />
-            <Route path="cookies" element={<CookiesPage />} />
-          </Route>
-        </Routes>
-      </Router>
+      <AuthProvider>
+        <DemoDataProvider>
+          <Router>
+            <ScrollToTop />
+            <Routes>
+              <Route path="/" element={<Layout />}>
+                <Route index element={<HomePage />} />
+                <Route path="about" element={<AboutPage />} />
+                <Route path="team" element={<TeamPage />} />
+                <Route path="case-studies" element={<CaseStudiesPage />} />
+                <Route path="contact" element={<ContactPage />} />
+                <Route path="blog" element={<BlogPage />} />
+                <Route path="database" element={<DatabasePage />} />
+                <Route path="guides" element={<GuidesPage />} />
+                <Route path="faq" element={<FAQPage />} />
+                <Route path="privacy" element={<PrivacyPage />} />
+                <Route path="terms" element={<TermsPage />} />
+                <Route path="aml-kyc" element={<AmlKycPage />} />
+                <Route path="cookies" element={<CookiesPage />} />
+              </Route>
+              <Route path="/login" element={<LoginPage />} />
+              <Route path="/register" element={<RegisterPage />} />
+              <Route 
+                path="/dashboard" 
+                element={
+                  <ProtectedRoute requiredRole="client">
+                    <DashboardPage />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/admin" 
+                element={
+                  <ProtectedRoute requiredRole="admin">
+                    <AdminPage />
+                  </ProtectedRoute>
+                } 
+              />
+            </Routes>
+          </Router>
+        </DemoDataProvider>
+      </AuthProvider>
     </LanguageProvider>
   );
 }

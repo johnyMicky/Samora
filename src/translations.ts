@@ -11,6 +11,11 @@ export interface TranslationDictionary {
     whyUs: string;
     faq: string;
     caseAssessment: string;
+    login: string;
+    register: string;
+    dashboard: string;
+    admin: string;
+    logout: string;
     switchLangAria: string;
   };
   hero: {
@@ -309,6 +314,218 @@ export interface TranslationDictionary {
       s3Text: string;
     };
   };
+  auth: {
+    loginTitle: string;
+    loginSubtitle: string;
+    registerTitle: string;
+    registerSubtitle: string;
+    emailLabel: string;
+    emailPlaceholder: string;
+    passwordLabel: string;
+    passwordPlaceholder: string;
+    confirmPasswordLabel: string;
+    confirmPasswordPlaceholder: string;
+    firstNameLabel: string;
+    firstNamePlaceholder: string;
+    lastNameLabel: string;
+    lastNamePlaceholder: string;
+    phoneLabel: string;
+    phonePlaceholder: string;
+    countryLabel: string;
+    countryPlaceholder: string;
+    rememberMe: string;
+    forgotPassword: string;
+    loginButton: string;
+    registerButton: string;
+    loggingIn: string;
+    registering: string;
+    noAccount: string;
+    haveAccount: string;
+    agreeTerms: string;
+    termsLink: string;
+    privacyLink: string;
+    passwordMismatch: string;
+    termsRequired: string;
+    loginSuccess: string;
+    registerSuccess: string;
+    securityBanner: string;
+    securityBadge: string;
+    forgotPasswordAlert: string;
+    firebaseModeNotice: string;
+    demoNote: string;
+  };
+  dashboard: {
+    title: string;
+    subtitle: string;
+    clientBadge: string;
+    welcomeBack: string;
+    navOverview: string;
+    navMyCase: string;
+    navWallets: string;
+    navFinance: string;
+    navTransactions: string;
+    navDocuments: string;
+    navSupport: string;
+    navProfile: string;
+    navLogout: string;
+    totalBalance: string;
+    activeCases: string;
+    documentsCount: string;
+    pendingTransactions: string;
+    recentActivity: string;
+    emptyCaseTitle: string;
+    emptyCaseDesc: string;
+    startAssessmentCta: string;
+    caseStatusLabel: string;
+    caseStatusPending: string;
+    walletsEmptyTitle: string;
+    walletsEmptyDesc: string;
+    txEmptyTitle: string;
+    txEmptyDesc: string;
+    docsEmptyTitle: string;
+    docsEmptyDesc: string;
+    uploadDocPrompt: string;
+    supportTitle: string;
+    supportDesc: string;
+    contactSupportBtn: string;
+    profileInfoTitle: string;
+    accountId: string;
+    registeredOn: string;
+    securityLevel: string;
+    securityLevelValue: string;
+    twoFactorStatus: string;
+    twoFactorEnabled: string;
+    caseNumber: string;
+    status: string;
+    createdDate: string;
+    lastUpdated: string;
+    adminNote: string;
+    bankAccountTitle: string;
+    bankName: string;
+    accountHolder: string;
+    iban: string;
+    statusVerified: string;
+    requestWithdrawal: string;
+    newWithdrawalTitle: string;
+    amount: string;
+    asset: string;
+    network: string;
+    destinationType: string;
+    destinationAddress: string;
+    cryptoWallet: string;
+    bankAccount: string;
+    optionalNote: string;
+    submitRequest: string;
+    cancel: string;
+    withdrawalSubmitted: string;
+    selectFilePrompt: string;
+    associateCaseNumber: string;
+    documentUploadedSuccess: string;
+    rejectionReason: string;
+    statusWaitingDocs: string;
+    statusInProcess: string;
+    statusRejected: string;
+    statusDone: string;
+    caseStatusOpened: string;
+    caseStatusConfirming: string;
+    caseStatusDocumentsRequired: string;
+    caseStatusUnderReview: string;
+    caseStatusCompleted: string;
+    caseStatusClosed: string;
+    addWallet: string;
+    addBankAccount: string;
+    addCard: string;
+    addedByAdmin: string;
+    addedByClient: string;
+    cryptoWalletsTitle: string;
+    bankAccountsTitle: string;
+    cardsTitle: string;
+    cardholderName: string;
+    cardBrand: string;
+    cardNumber: string;
+    cvvCvc: string;
+    last4Digits: string;
+    expiryMonth: string;
+    expiryYear: string;
+    billingCountry: string;
+    optionalLabel: string;
+    walletAddress: string;
+    swiftBic: string;
+    selectDestination: string;
+    reviewAndConfirm: string;
+    confirmWithdrawal: string;
+    backToEdit: string;
+    editAccount: string;
+    deleteAccount: string;
+    confirmDeleteAccount: string;
+  };
+  admin: {
+    title: string;
+    subtitle: string;
+    adminBadge: string;
+    verifiedAdmin: string;
+    navOverview: string;
+    navClients: string;
+    navCases: string;
+    navFinance: string;
+    navTransactions: string;
+    navDocuments: string;
+    navAuditLogs: string;
+    navActivityLog: string;
+    navSettings: string;
+    navLogout: string;
+    systemStatus: string;
+    systemOnline: string;
+    totalRegisteredClients: string;
+    activeInvestigationQueues: string;
+    securityLogsCount: string;
+    databaseIntegrity: string;
+    auditLogNotice: string;
+    restrictedNotice: string;
+    searchPlaceholder: string;
+    noDataNotice: string;
+    noActiveCases: string;
+    serverSideEnforcedNotice: string;
+    totalClients: string;
+    openCases: string;
+    pendingTransactionsCount: string;
+    documentsAwaitingReview: string;
+    clientProfile: string;
+    manageFinance: string;
+    addAsset: string;
+    editAsset: string;
+    deleteAsset: string;
+    createCase: string;
+    editCase: string;
+    approve: string;
+    reject: string;
+    rejectionReasonPrompt: string;
+    rejectionReasonRequired: string;
+    updateStatus: string;
+    reviewStatus: string;
+    internalNote: string;
+    actionCol: string;
+    createUser: string;
+    userType: string;
+    clientUser: string;
+    administratorUser: string;
+    superAdmin: string;
+    administrator: string;
+    tempPassword: string;
+    statusActive: string;
+    statusSuspended: string;
+    filterAll: string;
+    filterClients: string;
+    filterAdmins: string;
+    sourceAdmin: string;
+    sourceClient: string;
+    lastActivity: string;
+    suspendUser: string;
+    activateUser: string;
+    userRoleLabel: string;
+    userStatusLabel: string;
+    cannotModifySuperAdmin: string;
+  };
 }
 
 export const translations: Record<Language, TranslationDictionary> = {
@@ -323,6 +540,11 @@ export const translations: Record<Language, TranslationDictionary> = {
       whyUs: "Why Us",
       faq: "FAQ",
       caseAssessment: "Case Assessment",
+      login: "Login",
+      register: "Register",
+      dashboard: "Dashboard",
+      admin: "Admin",
+      logout: "Logout",
       switchLangAria: "Switch language to German"
     },
     hero: {
@@ -483,7 +705,7 @@ export const translations: Record<Language, TranslationDictionary> = {
       emailAddress: "Email Address",
       emailPlaceholder: "john@example.com",
       phoneNumber: "Phone Number",
-      phonePlaceholder: "+1 (555) 000-0000",
+      phonePlaceholder: "+49 30 12345678",
       country: "Country",
       countryPlaceholder: "Country of residence",
       incidentType: "Type of Incident",
@@ -659,6 +881,218 @@ export const translations: Record<Language, TranslationDictionary> = {
         s3Title: "3. Security Cookies",
         s3Text: "We use security cookies to help identify and prevent security risks. For example, we use these cookies to store information that allows us to recover your session if you are disconnected during a secure forensic data upload."
       }
+    },
+    auth: {
+      loginTitle: "Client Login",
+      loginSubtitle: "Securely access your personal Bafin Solution client portal and forensic status.",
+      registerTitle: "Create Client Account",
+      registerSubtitle: "Register for confidential case review, blockchain analysis, and evidence management.",
+      emailLabel: "Email Address",
+      emailPlaceholder: "name@domain.com",
+      passwordLabel: "Password",
+      passwordPlaceholder: "At least 8 characters",
+      confirmPasswordLabel: "Confirm Password",
+      confirmPasswordPlaceholder: "Re-enter password",
+      firstNameLabel: "First Name",
+      firstNamePlaceholder: "John",
+      lastNameLabel: "Last Name",
+      lastNamePlaceholder: "Doe",
+      phoneLabel: "Phone Number",
+      phonePlaceholder: "+49 30 12345678",
+      countryLabel: "Country",
+      countryPlaceholder: "Germany",
+      rememberMe: "Remember me on this device",
+      forgotPassword: "Forgot password?",
+      loginButton: "Sign In to Portal",
+      registerButton: "Create Protected Account",
+      loggingIn: "Authenticating credentials...",
+      registering: "Initializing secure client profile...",
+      noAccount: "Don't have an account?",
+      haveAccount: "Already have an account?",
+      agreeTerms: "I agree to the Terms & Conditions and Privacy Policy.",
+      termsLink: "Terms & Conditions",
+      privacyLink: "Privacy Policy",
+      passwordMismatch: "The passwords do not match. Please verify.",
+      termsRequired: "You must accept the Terms & Conditions and Privacy Policy to proceed.",
+      loginSuccess: "Authentication successful. Directing to your workspace...",
+      registerSuccess: "Registration successful! Loading your client dashboard...",
+      securityBanner: "Confidential Client Environment • 256-bit TLS Encryption",
+      securityBadge: "Bafin Solution Auth Protocol",
+      forgotPasswordAlert: "For security and fraud prevention, password resets require manual identity verification. Please contact our direct helpline at +49 30 12345678 or support@bafinsolution.com.",
+      firebaseModeNotice: "Firebase Authentication Active",
+      demoNote: "Secure session management enabled."
+    },
+    dashboard: {
+      title: "Client Workspace",
+      subtitle: "Protected area for forensic status, transaction logs, and evidentiary documentation.",
+      clientBadge: "Verified Client Account",
+      welcomeBack: "Welcome back",
+      navOverview: "Overview",
+      navMyCase: "My Case",
+      navWallets: "My Finance",
+      navFinance: "My Finance",
+      navTransactions: "Transactions",
+      navDocuments: "Documents",
+      navSupport: "Support",
+      navProfile: "Profile",
+      navLogout: "Logout",
+      totalBalance: "Total Balance",
+      activeCases: "Active Cases",
+      documentsCount: "Documents",
+      pendingTransactions: "Pending Transactions",
+      recentActivity: "Recent Activity",
+      emptyCaseTitle: "No Active Case in Investigation",
+      emptyCaseDesc: "Cases will be assigned to your account by the Bafin Solution operations team.",
+      startAssessmentCta: "Case Review Active",
+      caseStatusLabel: "Case File Status",
+      caseStatusPending: "Under Review",
+      walletsEmptyTitle: "No Wallets Recorded",
+      walletsEmptyDesc: "Assigned cryptocurrency and verified banking endpoints appear under your financial portfolio.",
+      txEmptyTitle: "No Transaction Records",
+      txEmptyDesc: "All asset allocations and withdrawal requests will be displayed here.",
+      docsEmptyTitle: "No Documents Uploaded",
+      docsEmptyDesc: "Uploaded evidence, receipts, and communication exports are securely held in this dossier.",
+      uploadDocPrompt: "Upload Document",
+      supportTitle: "Confidential Client Support",
+      supportDesc: "Have questions about your dossier or need to submit newly discovered evidence? Our team is available by phone and direct email.",
+      contactSupportBtn: "Call Support (+49 30 12345678)",
+      profileInfoTitle: "Client Master Information",
+      accountId: "Client Account ID",
+      registeredOn: "Registration Date",
+      securityLevel: "Security Protocol",
+      securityLevelValue: "Level 2 (Encrypted Keyring)",
+      twoFactorStatus: "Session Authentication",
+      twoFactorEnabled: "Enforced",
+      caseNumber: "Case Number",
+      status: "Status",
+      createdDate: "Created Date",
+      lastUpdated: "Last Updated",
+      adminNote: "Admin Note",
+      bankAccountTitle: "Bank Account",
+      bankName: "Bank",
+      accountHolder: "Account Holder",
+      iban: "IBAN",
+      statusVerified: "Verified",
+      requestWithdrawal: "Request Withdrawal",
+      newWithdrawalTitle: "Request Withdrawal",
+      amount: "Amount ($)",
+      asset: "Asset",
+      network: "Network",
+      destinationType: "Destination Type",
+      destinationAddress: "Destination Address / Account",
+      cryptoWallet: "Crypto Wallet",
+      bankAccount: "Bank Account",
+      optionalNote: "Optional Note",
+      submitRequest: "Submit Request for Review",
+      cancel: "Cancel",
+      withdrawalSubmitted: "Withdrawal request submitted for review.",
+      selectFilePrompt: "Select File / Upload Document",
+      associateCaseNumber: "Associate with Case Number",
+      documentUploadedSuccess: "Document uploaded successfully for review.",
+      rejectionReason: "Rejection Reason",
+      statusWaitingDocs: "Waiting for Documents",
+      statusInProcess: "In Process",
+      statusRejected: "Rejected",
+      statusDone: "Done",
+      caseStatusOpened: "Opened",
+      caseStatusConfirming: "Confirming",
+      caseStatusDocumentsRequired: "Documents Required",
+      caseStatusUnderReview: "Under Review",
+      caseStatusCompleted: "Completed",
+      caseStatusClosed: "Closed",
+      addWallet: "+ Add Wallet",
+      addBankAccount: "+ Add Bank Account",
+      addCard: "+ Add Card",
+      addedByAdmin: "Added by Admin",
+      addedByClient: "Added by Client",
+      cryptoWalletsTitle: "Crypto Wallets",
+      bankAccountsTitle: "Bank Accounts",
+      cardsTitle: "Cards / Payout Methods",
+      cardholderName: "Cardholder Name",
+      cardBrand: "Card Brand",
+      cardNumber: "Card Number",
+      cvvCvc: "CVV / CVC",
+      last4Digits: "Last 4 Digits",
+      expiryMonth: "Expiry Month",
+      expiryYear: "Expiry Year",
+      billingCountry: "Billing Country",
+      optionalLabel: "Optional Label",
+      walletAddress: "Wallet Address",
+      swiftBic: "SWIFT / BIC",
+      selectDestination: "Select Payout Destination",
+      reviewAndConfirm: "Review & Confirm",
+      confirmWithdrawal: "Confirm Withdrawal Request",
+      backToEdit: "Back",
+      editAccount: "Edit",
+      deleteAccount: "Remove",
+      confirmDeleteAccount: "Are you sure you want to remove this financial destination?"
+    },
+    admin: {
+      title: "Administration Console",
+      subtitle: "Secure administrative management of client cases, verification queues, and system audit logs.",
+      adminBadge: "System Administrator",
+      verifiedAdmin: "Authorized Access",
+      navOverview: "Overview",
+      navClients: "Clients / Users",
+      navCases: "Cases",
+      navFinance: "Finance",
+      navTransactions: "Transactions",
+      navDocuments: "Documents",
+      navAuditLogs: "Audit Logs",
+      navActivityLog: "Activity Log",
+      navSettings: "System Settings",
+      navLogout: "Logout",
+      systemStatus: "System Status",
+      systemOnline: "Operational (Normal)",
+      totalRegisteredClients: "Registered Clients",
+      activeInvestigationQueues: "Active Investigation Queues",
+      securityLogsCount: "Security Audit Events (24h)",
+      databaseIntegrity: "Database Integrity",
+      auditLogNotice: "All administrative operations and credential verifications are immutably logged.",
+      restrictedNotice: "This console is strictly restricted to authorized Bafin Solution operations personnel. Role elevation attempts are denied by Firestore Security Rules.",
+      searchPlaceholder: "Search client UID, email or dossier ID...",
+      noDataNotice: "All system parameters operational. No security violations reported.",
+      noActiveCases: "No unassigned cases in queue.",
+      serverSideEnforcedNotice: "Role privileges are verified through server-side claims and database security rules.",
+      totalClients: "Total Clients",
+      openCases: "Open Cases",
+      pendingTransactionsCount: "Pending Transactions",
+      documentsAwaitingReview: "Documents Awaiting Review",
+      clientProfile: "Client Profile",
+      manageFinance: "Manage Finance",
+      addAsset: "Add Asset",
+      editAsset: "Edit Asset",
+      deleteAsset: "Remove Asset",
+      createCase: "Create Case",
+      editCase: "Edit Case",
+      approve: "Approve / Mark Completed",
+      reject: "Reject",
+      rejectionReasonPrompt: "Enter Rejection Reason",
+      rejectionReasonRequired: "Rejection reason is required.",
+      updateStatus: "Update Status",
+      reviewStatus: "Review Status",
+      internalNote: "Admin Note",
+      actionCol: "Action",
+      createUser: "+ Create User",
+      userType: "User Type",
+      clientUser: "Client",
+      administratorUser: "Administrator",
+      superAdmin: "Super Admin",
+      administrator: "Administrator",
+      tempPassword: "Temporary Password",
+      statusActive: "Active",
+      statusSuspended: "Suspended",
+      filterAll: "All",
+      filterClients: "Clients",
+      filterAdmins: "Administrators",
+      sourceAdmin: "ADMIN",
+      sourceClient: "CLIENT",
+      lastActivity: "Last Activity",
+      suspendUser: "Suspend",
+      activateUser: "Activate",
+      userRoleLabel: "Role",
+      userStatusLabel: "Status",
+      cannotModifySuperAdmin: "Administrators cannot modify Super Admin accounts."
     }
   },
   de: {
@@ -672,6 +1106,11 @@ export const translations: Record<Language, TranslationDictionary> = {
       whyUs: "Warum wir",
       faq: "FAQ",
       caseAssessment: "Fallbewertung",
+      login: "Anmelden",
+      register: "Registrieren",
+      dashboard: "Dashboard",
+      admin: "Admin",
+      logout: "Abmelden",
       switchLangAria: "Sprache auf Englisch wechseln"
     },
     hero: {
@@ -832,7 +1271,7 @@ export const translations: Record<Language, TranslationDictionary> = {
       emailAddress: "E-Mail-Adresse",
       emailPlaceholder: "max@beispiel.de",
       phoneNumber: "Telefonnummer",
-      phonePlaceholder: "+49 170 1234567",
+      phonePlaceholder: "+49 30 12345678",
       country: "Land",
       countryPlaceholder: "Wohnsitzland",
       incidentType: "Art des Vorfalls",
@@ -1008,6 +1447,218 @@ export const translations: Record<Language, TranslationDictionary> = {
         s3Title: "3. Sicherheits-Cookies",
         s3Text: "Sicherheits-Cookies dienen dem Schutz vor Missbrauch und unberechtigten Zugriffen und unterstützen eine sichere Sitzungsverwaltung bei Formulardateneingaben."
       }
+    },
+    auth: {
+      loginTitle: "Kunden-Login",
+      loginSubtitle: "Greifen Sie sicher auf Ihr persönliches Bafin Solution Klienten-Portal und Ihren Fallstatus zu.",
+      registerTitle: "Kundenkonto erstellen",
+      registerSubtitle: "Registrieren Sie sich für die geschützte Fallprüfung, Transaktionsanalyse und Beweissicherung.",
+      emailLabel: "E-Mail-Adresse",
+      emailPlaceholder: "ihre.email@beispiel.de",
+      passwordLabel: "Passwort",
+      passwordPlaceholder: "Mindestens 8 Zeichen",
+      confirmPasswordLabel: "Passwort bestätigen",
+      confirmPasswordPlaceholder: "Passwort wiederholen",
+      firstNameLabel: "Vorname",
+      firstNamePlaceholder: "Max",
+      lastNameLabel: "Nachname",
+      lastNamePlaceholder: "Mustermann",
+      phoneLabel: "Telefonnummer",
+      phonePlaceholder: "+49 30 12345678",
+      countryLabel: "Land",
+      countryPlaceholder: "Deutschland",
+      rememberMe: "Angemeldet bleiben",
+      forgotPassword: "Passwort vergessen?",
+      loginButton: "Jetzt anmelden",
+      registerButton: "Konto registrieren",
+      loggingIn: "Authentifizierung läuft...",
+      registering: "Konto wird eingerichtet...",
+      noAccount: "Noch kein Konto?",
+      haveAccount: "Bereits registriert?",
+      agreeTerms: "Ich stimme den Allgemeinen Geschäftsbedingungen und der Datenschutzerklärung zu.",
+      termsLink: "AGB",
+      privacyLink: "Datenschutzerklärung",
+      passwordMismatch: "Die Passwörter stimmen nicht überein. Bitte überprüfen Sie Ihre Eingabe.",
+      termsRequired: "Bitte bestätigen Sie die Bedingungen, um fortzufahren.",
+      loginSuccess: "Anmeldung erfolgreich. Weiterleitung zu Ihrem Bereich...",
+      registerSuccess: "Konto erfolgreich erstellt! Weiterleitung zum Dashboard...",
+      securityBanner: "Geschützte Klienten-Umgebung • 256-Bit-TLS-Verschlüsselung",
+      securityBadge: "Bafin Solution Sicherheitsprotokoll",
+      forgotPasswordAlert: "Aus Sicherheitsgründen erfordert das Zurücksetzen des Passworts eine Verifizierung. Bitte kontaktieren Sie unseren vertraulichen Support unter +49 30 12345678 oder support@bafinsolution.com.",
+      firebaseModeNotice: "Firebase Authentication & Firestore aktiv",
+      demoNote: "Sitzung und Zugangsdaten werden sicher verwaltet."
+    },
+    dashboard: {
+      title: "Klienten-Portal",
+      subtitle: "Geschützter Bereich für Fallstatus, Transaktionsanalyse und Beweissicherung.",
+      clientBadge: "Verifizierter Klient",
+      welcomeBack: "Willkommen zurück",
+      navOverview: "Übersicht",
+      navMyCase: "Mein Fall",
+      navWallets: "Meine Finanzen",
+      navFinance: "Meine Finanzen",
+      navTransactions: "Transaktionen",
+      navDocuments: "Dokumente",
+      navSupport: "Support",
+      navProfile: "Profil",
+      navLogout: "Abmelden",
+      totalBalance: "Gesamtguthaben",
+      activeCases: "Aktive Fälle",
+      documentsCount: "Dokumente",
+      pendingTransactions: "Ausstehende Transaktionen",
+      recentActivity: "Letzte Aktivitäten",
+      emptyCaseTitle: "Kein aktiver Fall in Bearbeitung",
+      emptyCaseDesc: "Fälle werden Ihrem Account durch das Bafin Solution Team zugewiesen.",
+      startAssessmentCta: "Fallprüfung aktiv",
+      caseStatusLabel: "Status der Fallakte",
+      caseStatusPending: "In Prüfung",
+      walletsEmptyTitle: "Keine Wallets hinterlegt",
+      walletsEmptyDesc: "Zugeordnete Kryptowährungen und verifizierte Bankkonten erscheinen in Ihrer Finanzübersicht.",
+      txEmptyTitle: "Keine Transaktionsdaten",
+      txEmptyDesc: "Hier werden alle Vermögenszuordnungen und Auszahlungsanfragen aufgeführt.",
+      docsEmptyTitle: "Keine Dokumente vorhanden",
+      docsEmptyDesc: "Hochgeladene Nachweise, Belege und Chatprotokolle werden hier sicher aufbewahrt.",
+      uploadDocPrompt: "Dokument hochladen",
+      supportTitle: "Vertraulicher Klienten-Support",
+      supportDesc: "Haben Sie Fragen zu Ihrem Status oder möchten Sie weitere Beweismittel nachreichen? Unser Team steht Ihnen telefonisch und per E-Mail zur Verfügung.",
+      contactSupportBtn: "Support anrufen (+49 30 12345678)",
+      profileInfoTitle: "Klienten-Stammdaten",
+      accountId: "Klienten-ID",
+      registeredOn: "Registriert am",
+      securityLevel: "Sicherheitsstufe",
+      securityLevelValue: "Stufe 2 (Verschlüsselt)",
+      twoFactorStatus: "Sitzungsauthentifizierung",
+      twoFactorEnabled: "Aktiviert",
+      caseNumber: "Fallnummer",
+      status: "Status",
+      createdDate: "Erstellungsdatum",
+      lastUpdated: "Zuletzt aktualisiert",
+      adminNote: "Admin-Hinweis",
+      bankAccountTitle: "Bankkonto",
+      bankName: "Bank",
+      accountHolder: "Kontoinhaber",
+      iban: "IBAN",
+      statusVerified: "Verifiziert",
+      requestWithdrawal: "Auszahlung anfordern",
+      newWithdrawalTitle: "Auszahlung anfordern",
+      amount: "Betrag ($)",
+      asset: "Vermögenswert",
+      network: "Netzwerk",
+      destinationType: "Zieltyp",
+      destinationAddress: "Zieladresse / Bankverbindung",
+      cryptoWallet: "Krypto-Wallet",
+      bankAccount: "Bankkonto",
+      optionalNote: "Optionale Notiz",
+      submitRequest: "Anfrage zur Prüfung einreichen",
+      cancel: "Abbrechen",
+      withdrawalSubmitted: "Auszahlungsantrag zur Prüfung eingereicht.",
+      selectFilePrompt: "Datei auswählen / Dokument hochladen",
+      associateCaseNumber: "Fallnummer zuordnen",
+      documentUploadedSuccess: "Dokument erfolgreich zur Prüfung hochgeladen.",
+      rejectionReason: "Ablehnungsgrund",
+      statusWaitingDocs: "Wartet auf Unterlagen",
+      statusInProcess: "In Bearbeitung",
+      statusRejected: "Abgelehnt",
+      statusDone: "Abgeschlossen",
+      caseStatusOpened: "Eröffnet",
+      caseStatusConfirming: "Bestätigung",
+      caseStatusDocumentsRequired: "Unterlagen erforderlich",
+      caseStatusUnderReview: "In Prüfung",
+      caseStatusCompleted: "Abgeschlossen",
+      caseStatusClosed: "Geschlossen",
+      addWallet: "+ Wallet hinzufügen",
+      addBankAccount: "+ Bankkonto hinzufügen",
+      addCard: "+ Karte hinzufügen",
+      addedByAdmin: "Vom Administrator zugewiesen",
+      addedByClient: "Vom Kunden hinzugefügt",
+      cryptoWalletsTitle: "Krypto-Wallets",
+      bankAccountsTitle: "Bankkonten",
+      cardsTitle: "Karten & Auszahlungsmethoden",
+      cardholderName: "Karteninhaber",
+      cardBrand: "Kartenanbieter",
+      cardNumber: "Kartennummer",
+      cvvCvc: "CVV / CVC",
+      last4Digits: "Letzte 4 Ziffern",
+      expiryMonth: "Ablaufmonat",
+      expiryYear: "Ablaufjahr",
+      billingCountry: "Rechnungsland",
+      optionalLabel: "Optionale Bezeichnung",
+      walletAddress: "Wallet-Adresse",
+      swiftBic: "SWIFT / BIC",
+      selectDestination: "Auszahlungsziel auswählen",
+      reviewAndConfirm: "Überprüfen & Bestätigen",
+      confirmWithdrawal: "Auszahlungsantrag bestätigen",
+      backToEdit: "Zurück",
+      editAccount: "Bearbeiten",
+      deleteAccount: "Entfernen",
+      confirmDeleteAccount: "Möchten Sie diese Auszahlungsmethode wirklich entfernen?"
+    },
+    admin: {
+      title: "Administrations-Konsole",
+      subtitle: "Verwaltung von Klientenakten, Prüfprotokollen und Sicherheits-Audits.",
+      adminBadge: "System-Administrator",
+      verifiedAdmin: "Autorisierter Zugriff",
+      navOverview: "Übersicht",
+      navClients: "Klienten / Benutzer",
+      navCases: "Fälle",
+      navFinance: "Finanzen",
+      navTransactions: "Transaktionen",
+      navDocuments: "Dokumente",
+      navAuditLogs: "Audit-Protokolle",
+      navActivityLog: "Aktivitätsprotokoll",
+      navSettings: "System-Einstellungen",
+      navLogout: "Abmelden",
+      systemStatus: "System-Status",
+      systemOnline: "Betriebsbereit (Normal)",
+      totalRegisteredClients: "Registrierte Klienten",
+      activeInvestigationQueues: "Offene Prüfvorgänge",
+      securityLogsCount: "Sicherheits-Ereignisse (24h)",
+      databaseIntegrity: "Datenbank-Integrität",
+      auditLogNotice: "Alle administrativen Aktivitäten werden unveränderlich protokolliert.",
+      restrictedNotice: "Dieser Bereich ist ausschließlich autorisierten Administratoren vorbehalten. Sämtliche Aktionen unterliegen strengen Sicherheitsrichtlinien.",
+      searchPlaceholder: "Klienten-ID oder E-Mail suchen...",
+      noDataNotice: "Keine ausstehenden Warnmeldungen oder Sicherheitskonflikte.",
+      noActiveCases: "Aktuell liegen keine unzugewiesenen Klientenfälle vor.",
+      serverSideEnforcedNotice: "Rollenrechte werden serverseitig und über Firestore Security Rules erzwungen.",
+      totalClients: "Gesamte Klienten",
+      openCases: "Offene Fälle",
+      pendingTransactionsCount: "Ausstehende Transaktionen",
+      documentsAwaitingReview: "Zu prüfende Dokumente",
+      clientProfile: "Klientenprofil",
+      manageFinance: "Finanzen verwalten",
+      addAsset: "Asset hinzufügen",
+      editAsset: "Asset bearbeiten",
+      deleteAsset: "Asset entfernen",
+      createCase: "Fall erstellen",
+      editCase: "Fall bearbeiten",
+      approve: "Genehmigen / Als abgeschlossen markieren",
+      reject: "Ablehnen",
+      rejectionReasonPrompt: "Ablehnungsgrund eingeben",
+      rejectionReasonRequired: "Ein Ablehnungsgrund ist erforderlich.",
+      updateStatus: "Status aktualisieren",
+      reviewStatus: "Prüfungsstatus",
+      internalNote: "Admin-Hinweis",
+      actionCol: "Aktion",
+      createUser: "+ Benutzer erstellen",
+      userType: "Benutzertyp",
+      clientUser: "Kunde",
+      administratorUser: "Administrator",
+      superAdmin: "Super-Admin",
+      administrator: "Administrator",
+      tempPassword: "Temporäres Passwort",
+      statusActive: "Aktiv",
+      statusSuspended: "Gesperrt",
+      filterAll: "Alle",
+      filterClients: "Kunden",
+      filterAdmins: "Administratoren",
+      sourceAdmin: "ADMIN",
+      sourceClient: "KUNDE",
+      lastActivity: "Letzte Aktivität",
+      suspendUser: "Sperren",
+      activateUser: "Aktivieren",
+      userRoleLabel: "Rolle",
+      userStatusLabel: "Status",
+      cannotModifySuperAdmin: "Administratoren können Super-Admin-Konten nicht ändern."
     }
   }
 };
