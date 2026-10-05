@@ -1192,7 +1192,7 @@ export const DashboardPage: React.FC = () => {
                               </div>
                             ) : (
                               <span className="text-[10px] text-[#737378] italic">
-                                Admin-assigned recorded balance
+                                Verified account balance
                               </span>
                             )}
 

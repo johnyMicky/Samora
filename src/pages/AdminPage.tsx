@@ -57,7 +57,7 @@ import { LanguageSwitcher } from '../App';
 import {
   firestoreGetAllUserProfiles, firestoreGetWalletsForClient, firestoreGetBankAccountsForClient,
   firestoreGetPaymentCardsForClient, firestoreGetCasesForClient, firestoreGetTransactionsForClient,
-  firestoreGetDocumentsForClient, firestoreAddWallet, firestoreAddPaymentCard, firestoreAddCase,
+  firestoreGetDocumentsForClient, firestoreAddWallet, firestoreAddBankAccount, firestoreAddPaymentCard, firestoreAddCase,
   firestoreUpdateCase, firestoreDeleteCase, firestoreUpdateWallet, firestoreDeleteWallet,
   firestoreSubscribeCases, firestoreSubscribeWithdrawalRequests, firestoreUpdateWithdrawalRequestStatus,
   type FirestoreUserProfile, type FirestoreWallet, type FirestoreBankAccount, type FirestorePaymentCard,
@@ -448,6 +448,57 @@ export const AdminPage: React.FC = () => {
       updateAsset(editingAsset.id, { symbol: assetFormSymbol, name: assetFormName, network: assetFormNetwork, balance: balanceNum, walletAddress: assetFormWallet.trim(), comment: assetFormComment.trim() || undefined }, currentActorName);
     } else { addAsset(assetFormClient, { symbol: assetFormSymbol, name: assetFormName, network: assetFormNetwork, balance: balanceNum, walletAddress: assetFormWallet.trim(), source: 'admin', comment: assetFormComment.trim() || undefined }, currentActorName); }
     setIsAssetModalOpen(false);
+  };
+
+  // Admin Bank Account Modal State & Handlers
+  const [isAdminBankModalOpen, setIsAdminBankModalOpen] = useState(false);
+  const [adminBankTargetClient, setAdminBankTargetClient] = useState<string>('demo_client_user');
+  const [adminBankHolder, setAdminBankHolder] = useState('');
+  const [adminBankName, setAdminBankName] = useState('');
+  const [adminBankCountry, setAdminBankCountry] = useState('Germany');
+  const [adminBankIban, setAdminBankIban] = useState('');
+  const [adminBankSwift, setAdminBankSwift] = useState('');
+  const [adminBankLabel, setAdminBankLabel] = useState('');
+  const [adminBankError, setAdminBankError] = useState<string | null>(null);
+
+  const openAdminAddBankModal = (targetClientId?: string) => {
+    const clientId = targetClientId || selectedClientId || (clients[0] ? clients[0].id : 'demo_client_user');
+    const client = clients.find(c => c.id === clientId);
+    setAdminBankTargetClient(clientId);
+    setAdminBankHolder(client ? `${client.firstName} ${client.lastName}` : '');
+    setAdminBankName('');
+    setAdminBankCountry(client?.country || 'Germany');
+    setAdminBankIban('');
+    setAdminBankSwift('');
+    setAdminBankLabel('');
+    setAdminBankError(null);
+    setIsAdminBankModalOpen(true);
+  };
+
+  const handleSaveAdminBank = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAdminBankError(null);
+    if (!adminBankHolder.trim() || !adminBankName.trim() || !adminBankIban.trim() || !adminBankSwift.trim() || !adminBankCountry.trim()) {
+      setAdminBankError('Account holder, bank name, country, IBAN and SWIFT / BIC are required.');
+      return;
+    }
+    try {
+      const targetId = selectedClientId || adminBankTargetClient;
+      if (selectedClientId) {
+        await firestoreAddBankAccount({
+          clientId: targetId, accountHolder: adminBankHolder.trim(), bankName: adminBankName.trim(),
+          country: adminBankCountry.trim(), iban: adminBankIban.trim(), swiftBic: adminBankSwift.trim(),
+          label: adminBankLabel.trim() || undefined, source: 'admin', status: 'Verified'
+        });
+        await loadRealClientData(targetId);
+      } else {
+        await addBankAccount(targetId, { accountHolder: adminBankHolder.trim(), bankName: adminBankName.trim(), country: adminBankCountry.trim(), iban: adminBankIban.trim(), swiftBic: adminBankSwift.trim(), label: adminBankLabel.trim() || undefined, source: 'admin' }, currentActorRole, currentActorName);
+      }
+      setIsAdminBankModalOpen(false);
+    } catch (err) {
+      console.error('Failed to add bank account:', err);
+      setAdminBankError('Failed to add bank account. Please retry.');
+    }
   };
 
   // Admin Card Modal State & Handlers
@@ -1310,9 +1361,18 @@ export const AdminPage: React.FC = () => {
 
                       {/* Bank Accounts */}
                       <div className="space-y-3">
-                        <div className="flex items-center gap-2">
-                          <Building2 className="w-4 h-4 text-blue-400" />
-                          <h4 className="text-sm font-bold text-white uppercase tracking-wider">Bank Accounts</h4>
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <Building2 className="w-4 h-4 text-blue-400" />
+                            <h4 className="text-sm font-bold text-white uppercase tracking-wider">Bank Accounts</h4>
+                          </div>
+                          <button
+                            onClick={() => openAdminAddBankModal(client.id)}
+                            className="px-2.5 py-1 rounded-lg bg-[#1C1C1E] border border-[#29292C] hover:border-[#F5C400]/50 text-[11px] font-semibold text-white flex items-center gap-1.5 transition-all cursor-pointer hover:text-[#F5C400]"
+                          >
+                            <Plus className="w-3 h-3" />
+                            <span>Add Bank Account</span>
+                          </button>
                         </div>
 
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -2485,6 +2545,35 @@ export const AdminPage: React.FC = () => {
       {/* ========================================================================= */}
       {/* ADMIN ASSIGN CARD / PAYOUT METHOD MODAL */}
       {/* ========================================================================= */}
+      {isAdminBankModalOpen && (
+        <div className="fixed inset-0 z-[120] bg-black/75 backdrop-blur-sm flex items-center justify-center p-4" onMouseDown={(e) => { if (e.target === e.currentTarget) setIsAdminBankModalOpen(false); }}>
+          <div className="w-full max-w-lg bg-[#141416] border border-[#343438] rounded-2xl shadow-2xl p-6">
+            <div className="flex items-center justify-between mb-5">
+              <div>
+                <h3 className="text-xl font-bold text-white">Add Bank Account</h3>
+                <p className="text-xs text-[#8B8B90] mt-1">Assign a verified bank account to this client.</p>
+              </div>
+              <button onClick={() => setIsAdminBankModalOpen(false)} className="text-[#8B8B90] hover:text-white text-2xl cursor-pointer">×</button>
+            </div>
+            <form onSubmit={handleSaveAdminBank} className="space-y-4">
+              {adminBankError && <div className="text-sm text-red-400 bg-red-500/10 border border-red-500/30 rounded-lg px-3 py-2">{adminBankError}</div>}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <label className="text-xs text-[#A9A9AD]">Account Holder<input value={adminBankHolder} onChange={e=>setAdminBankHolder(e.target.value)} className="mt-1 w-full bg-[#0F0F10] border border-[#303034] rounded-lg px-3 py-2.5 text-white outline-none focus:border-[#F5C400]" /></label>
+                <label className="text-xs text-[#A9A9AD]">Bank Name<input value={adminBankName} onChange={e=>setAdminBankName(e.target.value)} className="mt-1 w-full bg-[#0F0F10] border border-[#303034] rounded-lg px-3 py-2.5 text-white outline-none focus:border-[#F5C400]" /></label>
+                <label className="text-xs text-[#A9A9AD]">Country<input value={adminBankCountry} onChange={e=>setAdminBankCountry(e.target.value)} className="mt-1 w-full bg-[#0F0F10] border border-[#303034] rounded-lg px-3 py-2.5 text-white outline-none focus:border-[#F5C400]" /></label>
+                <label className="text-xs text-[#A9A9AD]">Label (optional)<input value={adminBankLabel} onChange={e=>setAdminBankLabel(e.target.value)} placeholder="Primary payout account" className="mt-1 w-full bg-[#0F0F10] border border-[#303034] rounded-lg px-3 py-2.5 text-white outline-none focus:border-[#F5C400]" /></label>
+              </div>
+              <label className="block text-xs text-[#A9A9AD]">IBAN<input value={adminBankIban} onChange={e=>setAdminBankIban(e.target.value)} className="mt-1 w-full bg-[#0F0F10] border border-[#303034] rounded-lg px-3 py-2.5 text-white font-mono outline-none focus:border-[#F5C400]" /></label>
+              <label className="block text-xs text-[#A9A9AD]">SWIFT / BIC<input value={adminBankSwift} onChange={e=>setAdminBankSwift(e.target.value)} className="mt-1 w-full bg-[#0F0F10] border border-[#303034] rounded-lg px-3 py-2.5 text-white font-mono outline-none focus:border-[#F5C400]" /></label>
+              <div className="flex justify-end gap-3 pt-2">
+                <button type="button" onClick={() => setIsAdminBankModalOpen(false)} className="px-4 py-2.5 rounded-lg border border-[#303034] text-[#C8C8CC] hover:text-white cursor-pointer">Cancel</button>
+                <button type="submit" className="px-5 py-2.5 rounded-lg bg-[#F5C400] text-black font-bold hover:bg-[#FFD51A] cursor-pointer">Save Bank Account</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {isAdminCardModalOpen && (
         <div className="fixed inset-0 z-50 bg-black/75 flex items-center justify-center p-4">
           <div className="bg-[#141416] border border-[#29292C] rounded-2xl p-6 sm:p-7 max-w-md w-full space-y-4 shadow-2xl relative">
