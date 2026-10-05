@@ -59,8 +59,9 @@ import {
   firestoreGetPaymentCardsForClient, firestoreGetCasesForClient, firestoreGetTransactionsForClient,
   firestoreGetDocumentsForClient, firestoreAddWallet, firestoreAddPaymentCard, firestoreAddCase,
   firestoreUpdateCase, firestoreDeleteCase, firestoreUpdateWallet, firestoreDeleteWallet,
+  firestoreSubscribeCases, firestoreSubscribeWithdrawalRequests, firestoreUpdateWithdrawalRequestStatus,
   type FirestoreUserProfile, type FirestoreWallet, type FirestoreBankAccount, type FirestorePaymentCard,
-  type FirestoreCase, type FirestoreTransaction, type FirestoreDocument
+  type FirestoreCase, type FirestoreTransaction, type FirestoreDocument, type FirestoreWithdrawalRequest
 } from '../lib/firestoreService';
 
 type AdminTab = 'overview' | 'clients' | 'cases' | 'finance' | 'transactions' | 'documents' | 'activity-log';
@@ -128,6 +129,8 @@ export const AdminPage: React.FC = () => {
   const [firebaseUsers, setFirebaseUsers] = useState<ManagedUserItem[]>([]);
   const [firebaseUsersLoading, setFirebaseUsersLoading] = useState(true);
   const [firebaseUsersError, setFirebaseUsersError] = useState<string | null>(null);
+  const [realAllCases, setRealAllCases] = useState<FirestoreCase[]>([]);
+  const [realAllWithdrawals, setRealAllWithdrawals] = useState<FirestoreWithdrawalRequest[]>([]);
 
   const formatFirestoreDate = (value: unknown): string => {
     if (!value) return '—';
@@ -184,6 +187,12 @@ export const AdminPage: React.FC = () => {
 
   useEffect(() => {
     void loadFirebaseUsers();
+  }, []);
+
+  useEffect(() => {
+    const unsubCases = firestoreSubscribeCases(undefined, setRealAllCases);
+    const unsubWithdrawals = firestoreSubscribeWithdrawalRequests(undefined, setRealAllWithdrawals);
+    return () => { unsubCases(); unsubWithdrawals(); };
   }, []);
 
   // Selected Client for Detailed Dossier Inspection
@@ -373,7 +382,7 @@ export const AdminPage: React.FC = () => {
   // Case Handlers
   const openCreateCaseModal = (preselectedClientId?: string) => {
     setEditingCase(null);
-    setCaseFormClient(preselectedClientId || 'demo_client_user');
+    setCaseFormClient(preselectedClientId || firebaseUsers.find(u => u.role === 'client')?.id || '');
     setCaseFormNumber(`BS-${new Date().getFullYear()}-00${Math.floor(200 + Math.random() * 800)}`);
     setCaseFormStatus('In Process');
     setCaseFormNote('');
@@ -393,14 +402,12 @@ export const AdminPage: React.FC = () => {
     e.preventDefault();
     if (!caseFormNumber.trim()) return;
 
-    if (selectedClientId) {
-      const action = editingCase
-        ? firestoreUpdateCase(editingCase.id, { caseNumber: caseFormNumber.trim(), status: caseFormStatus, notes: caseFormNote.trim() })
-        : firestoreAddCase({ clientId: selectedClientId, caseNumber: caseFormNumber.trim(), title: 'Client Case', status: caseFormStatus, dateCreated: new Date().toISOString(), notes: caseFormNote.trim() });
-      void action.then(() => loadRealClientData(selectedClientId));
-    } else if (editingCase) {
-      updateCase(editingCase.id, { caseNumber: caseFormNumber.trim(), status: caseFormStatus, adminNote: caseFormNote.trim() }, currentActorName);
-    } else { createCase(caseFormClient, caseFormNumber.trim(), caseFormStatus, caseFormNote.trim(), currentActorName); }
+    const targetClientId = selectedClientId || caseFormClient;
+    if (!targetClientId) return;
+    const action = editingCase
+      ? firestoreUpdateCase(editingCase.id, { caseNumber: caseFormNumber.trim(), status: caseFormStatus, notes: caseFormNote.trim() })
+      : firestoreAddCase({ clientId: targetClientId, caseNumber: caseFormNumber.trim(), title: 'Client Case', status: caseFormStatus, dateCreated: new Date().toISOString(), notes: caseFormNote.trim() });
+    void action.then(() => { if (selectedClientId) void loadRealClientData(selectedClientId); });
     setIsCaseModalOpen(false);
   };
 
@@ -551,7 +558,12 @@ export const AdminPage: React.FC = () => {
       return;
     }
     if (rejectingTxId) {
-      rejectTransaction(rejectingTxId, rejectionReason.trim(), currentActorName);
+      const isRealWithdrawal = realAllWithdrawals.some(w => w.id === rejectingTxId);
+      if (isRealWithdrawal) {
+        void firestoreUpdateWithdrawalRequestStatus(rejectingTxId, 'rejected', rejectionReason.trim());
+      } else {
+        rejectTransaction(rejectingTxId, rejectionReason.trim(), currentActorName);
+      }
       setRejectingTxId(null);
       setRejectionReason('');
       setRejectionError(null);
@@ -747,7 +759,7 @@ export const AdminPage: React.FC = () => {
                   )}
                   {item.id === 'cases' && (
                     <span className="text-[10px] px-1.5 py-0.5 rounded-full font-bold bg-[#1C1C1E] text-[#A9A9AD]">
-                      {cases.length}
+                      {realAllCases.length}
                     </span>
                   )}
                   {item.id === 'transactions' && pendingTxCount > 0 && (
@@ -845,7 +857,7 @@ export const AdminPage: React.FC = () => {
                       <Briefcase className="w-4 h-4 text-blue-400" />
                     </div>
                     <div className="mt-3 text-2xl font-bold font-mono text-white">
-                      {cases.length}
+                      {realAllCases.length}
                     </div>
                     <p className="text-[11px] text-[#A9A9AD] mt-1">Active investigations</p>
                   </div>
@@ -1130,7 +1142,7 @@ export const AdminPage: React.FC = () => {
               const clientBanksList: BankAccountItem[] = realBanks.map(b => ({ id: b.id || '', clientId: b.clientId, accountHolder: b.accountHolder, bankName: b.bankName, country: b.country, iban: b.iban, swiftBic: b.swiftBic, label: b.label, status: (b.status as any) || 'Pending', source: b.source, createdAt: formatFirestoreDate(b.createdAt), updatedAt: formatFirestoreDate(b.updatedAt) }));
               const clientCardsList: PayoutCardItem[] = realCards.map(c => ({ id: c.id || '', clientId: c.clientId, cardholderName: c.cardholderName, cardBrand: c.brand, last4: c.last4, expiryMonth: c.expiryMonth, expiryYear: c.expiryYear, billingCountry: c.billingCountry, label: c.label, source: c.source, status: c.status, createdAt: formatFirestoreDate(c.createdAt), updatedAt: formatFirestoreDate(c.updatedAt) }));
               const clientCasesList: CaseItem[] = realCases.map(c => ({ id: c.id || '', clientId: c.clientId, caseNumber: c.caseNumber, status: c.status, createdDate: c.dateCreated || formatFirestoreDate(c.createdAt), lastUpdated: formatFirestoreDate(c.updatedAt), adminNote: c.notes || '' }));
-              const clientTxList: TransactionItem[] = realTransactions.map(t => ({ id: t.id || t.transactionId, clientId: t.clientId, type: (t.type as any) || 'Withdrawal', asset: t.currency, amount: t.amount, date: t.date || formatFirestoreDate(t.createdAt), status: t.status, adminComment: t.adminComment, destinationAddress: t.destinationAddress }));
+              const clientTxList: TransactionItem[] = [...realTransactions.map(t => ({ id: t.id || t.transactionId, clientId: t.clientId, type: (t.type as any) || 'Withdrawal', asset: t.currency, amount: t.amount, date: t.date || formatFirestoreDate(t.createdAt), status: t.status, adminComment: t.adminComment, destinationAddress: t.destinationAddress } as TransactionItem)), ...realAllWithdrawals.filter(w => w.clientId === selectedClientId).map(w => ({ id: w.id || '', clientId: w.clientId, type: 'Withdrawal' as const, asset: w.currency, amount: Number(w.amount) || 0, date: formatFirestoreDate(w.createdAt), status: (w.status === 'completed' || w.status === 'approved') ? 'Completed' as const : w.status === 'rejected' ? 'Rejected' as const : 'Pending' as const, adminComment: w.adminComment, destinationAddress: w.destinationId, destinationDetails: w.destinationDetails || w.destinationId, destinationType: w.destinationType as any, destinationSource: 'client' as const } as TransactionItem))];
               const clientDocsList = realDocuments.map(d => ({ id: d.id || '', clientId: d.clientId, name: d.fileName, fileType: d.fileName.split('.').pop() || 'file', fileSize: d.fileSize, caseNumber: d.caseNumber, uploadDate: d.uploadDate || formatFirestoreDate(d.createdAt), status: d.status === 'Verified' ? 'Accepted' : d.status === 'Rejected' ? 'Rejected' : 'New' } as any));
               const clientTotal = realWallets.reduce((sum, w) => sum + (Number(w.balance) || 0), 0);
 
@@ -1441,11 +1453,17 @@ export const AdminPage: React.FC = () => {
                               )}
                             </div>
 
-                            <div className="text-right shrink-0">
+                            <div className="text-right shrink-0 space-y-2">
                               <div className="font-mono font-bold text-white text-base">${tx.amount.toFixed(2)} {tx.asset}</div>
-                              <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${tx.status === 'Completed' ? 'bg-emerald-500/15 text-emerald-400' : (tx.status === 'Pending' ? 'bg-amber-500/15 text-amber-400' : 'bg-red-500/15 text-red-400')}`}>
+                              <span className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-bold ${tx.status === 'Completed' ? 'bg-emerald-500/15 text-emerald-400' : (tx.status === 'Pending' ? 'bg-amber-500/15 text-amber-400' : 'bg-red-500/15 text-red-400')}`}>
                                 {tx.status}
                               </span>
+                              {tx.status === 'Pending' && realAllWithdrawals.some(w => w.id === tx.id) && (
+                                <div className="flex items-center justify-end gap-2">
+                                  <button onClick={() => void firestoreUpdateWithdrawalRequestStatus(tx.id, 'completed')} className="px-2 py-1 rounded-lg bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-[10px] font-bold">Approve</button>
+                                  <button onClick={() => { setRejectingTxId(tx.id); setRejectionReason(''); setRejectionError(null); }} className="px-2 py-1 rounded-lg bg-red-500/15 border border-red-500/30 text-red-400 text-[10px] font-bold">Reject</button>
+                                </div>
+                              )}
                             </div>
                           </div>
                         ))}
@@ -1526,8 +1544,9 @@ export const AdminPage: React.FC = () => {
                 </div>
 
                 <div className="space-y-3">
-                  {cases.map((c) => {
-                    const client = clients.find(cl => cl.id === c.clientId);
+                  {realAllCases.map((fc) => {
+                        const c: CaseItem = { id: fc.id || '', clientId: fc.clientId, caseNumber: fc.caseNumber, status: fc.status, createdDate: fc.dateCreated || formatFirestoreDate(fc.createdAt), lastUpdated: formatFirestoreDate(fc.updatedAt), adminNote: fc.notes || '' };
+                    const client = firebaseUsers.find(cl => cl.id === c.clientId);
                     return (
                       <div key={c.id} className="p-5 bg-[#141416] border border-[#29292C] hover:border-[#F5C400]/30 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-all">
                         <div>
@@ -1654,8 +1673,15 @@ export const AdminPage: React.FC = () => {
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-[#29292C]">
-                        {transactions.map((tx) => {
-                          const client = clients.find(c => c.id === tx.clientId);
+                        {realAllWithdrawals.map((w) => {
+                          const tx = {
+                            id: w.id || '', clientId: w.clientId, amount: Number(w.amount) || 0, asset: w.currency,
+                            date: formatFirestoreDate(w.createdAt), destinationDetails: w.destinationDetails || w.destinationId,
+                            destinationAddress: w.destinationId, destinationType: w.destinationType, destinationSource: 'client' as FinancialSource,
+                            status: (w.status === 'completed' || w.status === 'approved') ? 'Completed' : w.status === 'rejected' ? 'Rejected' : 'Pending',
+                            adminComment: w.adminComment
+                          };
+                          const client = firebaseUsers.find(c => c.id === tx.clientId);
                           return (
                             <tr key={tx.id} className="hover:bg-[#1C1C1E]/50 transition-colors">
                               <td className="py-3.5 px-4">
@@ -1697,7 +1723,7 @@ export const AdminPage: React.FC = () => {
                                 {tx.status === 'Pending' ? (
                                   <div className="flex items-center justify-end gap-2">
                                     <button
-                                      onClick={() => approveTransaction(tx.id, currentActorName)}
+                                      onClick={() => void firestoreUpdateWithdrawalRequestStatus(tx.id, 'completed')}
                                       className="px-2.5 py-1 rounded-lg bg-emerald-500/15 border border-emerald-500/30 hover:bg-emerald-500/25 text-emerald-400 text-[11px] font-bold transition-all cursor-pointer"
                                     >
                                       Mark Completed
@@ -2263,7 +2289,7 @@ export const AdminPage: React.FC = () => {
                   onChange={(e) => setCaseFormClient(e.target.value)}
                   className="w-full bg-[#1C1C1E] border border-[#29292C] rounded-xl px-3 py-2 text-white focus:outline-hidden focus:border-[#F5C400]"
                 >
-                  {clients.map(cl => (
+                  {firebaseUsers.filter(u => u.role === 'client').map(cl => (
                     <option key={cl.id} value={cl.id}>{cl.firstName} {cl.lastName} ({cl.email})</option>
                   ))}
                 </select>
@@ -2354,7 +2380,7 @@ export const AdminPage: React.FC = () => {
                   onChange={(e) => setAssetFormClient(e.target.value)}
                   className="w-full bg-[#1C1C1E] border border-[#29292C] rounded-xl px-3 py-2 text-white focus:outline-hidden focus:border-[#F5C400]"
                 >
-                  {clients.map(cl => (
+                  {firebaseUsers.filter(u => u.role === 'client').map(cl => (
                     <option key={cl.id} value={cl.id}>{cl.firstName} {cl.lastName} ({cl.email})</option>
                   ))}
                 </select>
@@ -2507,7 +2533,7 @@ export const AdminPage: React.FC = () => {
                   }}
                   className="w-full bg-[#1C1C1E] border border-[#29292C] rounded-xl px-3 py-2 text-white focus:outline-hidden focus:border-[#F5C400]"
                 >
-                  {clients.map(cl => (
+                  {firebaseUsers.filter(u => u.role === 'client').map(cl => (
                     <option key={cl.id} value={cl.id}>{cl.firstName} {cl.lastName} ({cl.email})</option>
                   ))}
                 </select>

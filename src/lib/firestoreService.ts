@@ -304,6 +304,20 @@ export const firestoreCreateWithdrawalRequest = async (
   return ref.id;
 };
 
+export const firestoreSubscribeWithdrawalRequests = (clientId: string | undefined, callback: (items: FirestoreWithdrawalRequest[]) => void) => {
+  const baseColl = collection(db, 'withdrawalRequests');
+  const q = clientId ? query(baseColl, where('clientId', '==', clientId)) : query(baseColl);
+  return onSnapshot(q, snap => {
+    const items = snap.docs.map(d => ({ id: d.id, ...d.data() } as FirestoreWithdrawalRequest));
+    items.sort((a, b) => {
+      const at = a.createdAt?.toMillis?.() ?? 0;
+      const bt = b.createdAt?.toMillis?.() ?? 0;
+      return bt - at;
+    });
+    callback(items);
+  }, err => console.warn('Firestore withdrawal subscription error:', err));
+};
+
 export const firestoreUpdateWithdrawalRequestStatus = async (
   requestId: string,
   status: 'pending' | 'under_review' | 'approved' | 'rejected' | 'completed',
@@ -344,6 +358,12 @@ export const firestoreGetCasesForClient = async (clientId: string): Promise<Fire
     console.warn('Firestore: Could not fetch cases:', err);
     return [];
   }
+};
+
+export const firestoreSubscribeCases = (clientId: string | undefined, callback: (items: FirestoreCase[]) => void) => {
+  const baseColl = collection(db, 'cases');
+  const q = clientId ? query(baseColl, where('clientId', '==', clientId)) : query(baseColl);
+  return onSnapshot(q, snap => callback(snap.docs.map(d => ({ id: d.id, ...d.data() } as FirestoreCase))), err => console.warn('Firestore case subscription error:', err));
 };
 
 export const firestoreGetAllCases = async (): Promise<FirestoreCase[]> => {

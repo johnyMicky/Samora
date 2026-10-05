@@ -64,7 +64,12 @@ import {
   firestoreDeletePaymentCard,
   type FirestoreWallet,
   type FirestoreBankAccount,
-  type FirestorePaymentCard
+  type FirestorePaymentCard,
+  firestoreSubscribeCases,
+  firestoreSubscribeWithdrawalRequests,
+  firestoreCreateWithdrawalRequest,
+  type FirestoreCase,
+  type FirestoreWithdrawalRequest
 } from '../lib/firestoreService';
 
 type DashboardTab = 'overview' | 'my-case' | 'my-finance' | 'transactions' | 'documents' | 'support' | 'profile';
@@ -151,8 +156,28 @@ export const DashboardPage: React.FC = () => {
     status: c.status, createdAt: '', updatedAt: ''
   }));
   const totalBalance = clientAssets.reduce((sum, a) => sum + (Number(a.balance) || 0), 0);
-  const clientCases = getClientCases(activeClientId);
-  const clientTransactions = getClientTransactions(activeClientId);
+  const [realCases, setRealCases] = useState<FirestoreCase[]>([]);
+  const [realWithdrawals, setRealWithdrawals] = useState<FirestoreWithdrawalRequest[]>([]);
+
+  useEffect(() => {
+    if (!activeClientId) return;
+    const unsubCases = firestoreSubscribeCases(activeClientId, setRealCases);
+    const unsubWithdrawals = firestoreSubscribeWithdrawalRequests(activeClientId, setRealWithdrawals);
+    return () => { unsubCases(); unsubWithdrawals(); };
+  }, [activeClientId]);
+
+  const clientCases = realCases.map(c => ({
+    id: c.id || '', clientId: c.clientId, caseNumber: c.caseNumber, status: c.status,
+    createdDate: c.dateCreated || '', lastUpdated: '', adminNote: c.notes || ''
+  }));
+  const clientTransactions = realWithdrawals.map(w => ({
+    id: w.id || '', clientId: w.clientId, type: 'Withdrawal' as const, asset: w.currency,
+    network: '', amount: Number(w.amount) || 0, date: w.createdAt?.toDate?.()?.toLocaleDateString?.('en-US') || '',
+    status: (w.status === 'completed' || w.status === 'approved') ? 'Completed' as const : w.status === 'rejected' ? 'Rejected' as const : 'Pending' as const,
+    destinationType: w.destinationType as any, destinationAddress: w.destinationId,
+    destinationDetails: w.destinationDetails || w.destinationId, destinationSource: 'client' as const,
+    adminComment: w.adminComment
+  }));
   const clientDocuments = getClientDocuments(activeClientId);
   const clientActivity = getClientActivityLogs(activeClientId);
 
@@ -480,18 +505,16 @@ export const DashboardPage: React.FC = () => {
     }
 
     try {
-      await requestWithdrawal(
-        activeClientId,
-        withdrawAsset,
-        targetDest.network || 'Mainnet',
-        numAmount,
-        targetDest.type,
-        targetDest.details,
-        `${targetDest.title} (${targetDest.details})`,
-        targetDest.source,
-        withdrawNote.trim() || undefined,
-        clientFullName
-      );
+      await firestoreCreateWithdrawalRequest({
+        clientId: activeClientId,
+        amount: numAmount,
+        currency: withdrawAsset,
+        destinationType: targetDest.type,
+        destinationId: targetDest.id,
+        destinationDetails: `${targetDest.title} (${targetDest.details})`,
+        note: withdrawNote.trim() || undefined,
+        status: 'pending'
+      });
 
       setWithdrawSuccessMsg(t.dashboard.withdrawalSubmitted);
       setTimeout(() => {
@@ -2364,16 +2387,28 @@ export const DashboardPage: React.FC = () => {
                     <label className="block text-[#A9A9AD] font-bold uppercase mb-1">
                       {t.dashboard.amount}
                     </label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      min="1"
-                      required
-                      value={withdrawAmount}
-                      onChange={(e) => setWithdrawAmount(e.target.value)}
-                      placeholder="100.00"
-                      className="w-full bg-[#1C1C1E] border border-[#29292C] rounded-xl px-3 py-2.5 text-white font-mono focus:outline-hidden focus:border-[#F5C400]"
-                    />
+                    <div className="flex gap-2">
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="0.01"
+                        required
+                        value={withdrawAmount}
+                        onChange={(e) => setWithdrawAmount(e.target.value)}
+                        placeholder="100.00"
+                        className="min-w-0 flex-1 bg-[#1C1C1E] border border-[#29292C] rounded-xl px-3 py-2.5 text-white font-mono focus:outline-hidden focus:border-[#F5C400]"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const matching = clientAssets.find(a => a.symbol.toUpperCase() === withdrawAsset.toUpperCase());
+                          setWithdrawAmount(String(Math.max(0, Number(matching?.balance) || 0)));
+                        }}
+                        className="px-3 rounded-xl border border-[#F5C400]/40 bg-[#F5C400]/10 text-[#F5C400] font-bold hover:bg-[#F5C400]/20"
+                      >
+                        MAX
+                      </button>
+                    </div>
                   </div>
                 </div>
 
