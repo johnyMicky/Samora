@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { 
   ShieldCheck, 
@@ -66,7 +66,7 @@ import {
   type FirestoreUserProfile, type FirestoreWallet, type FirestoreBankAccount, type FirestorePaymentCard,
   type FirestoreCase, type FirestoreTransaction, type FirestoreDocument, type FirestoreWithdrawalRequest
 } from '../lib/firestoreService';
-import { endLiveChat, sendLiveChatMessage, subscribeAllLiveChats, subscribeLiveChat, type LiveChatMessage, type LiveChatSession } from '../lib/liveChat';
+import { endLiveChat, markChatRead, sendLiveChatMessage, subscribeAllLiveChats, subscribeLiveChat, type LiveChatMessage, type LiveChatSession } from '../lib/liveChat';
 
 type AdminTab = 'overview' | 'clients' | 'cases' | 'finance' | 'transactions' | 'documents' | 'live-chat' | 'activity-log';
 type UserFilter = 'ALL' | 'CLIENTS' | 'ADMINS' | 'ACTIVE' | 'PENDING' | 'SUSPENDED';
@@ -140,9 +140,13 @@ export const AdminPage: React.FC = () => {
   const [liveMessages, setLiveMessages] = useState<LiveChatMessage[]>([]);
   const [liveReply, setLiveReply] = useState('');
 
-  useEffect(() => subscribeAllLiveChats(setLiveChats), []);
-  useEffect(() => { if (!selectedChatId) { setLiveMessages([]); return; } return subscribeLiveChat(selectedChatId, setLiveMessages); }, [selectedChatId]);
+  const previousUnreadIds = useRef<Set<string> | null>(null);
+  const playChatNotification = () => { try { const AC = (window.AudioContext || (window as any).webkitAudioContext); if (!AC) return; const ctx = new AC(); const osc = ctx.createOscillator(); const gain = ctx.createGain(); osc.connect(gain); gain.connect(ctx.destination); osc.frequency.value = 760; gain.gain.setValueAtTime(0.07, ctx.currentTime); gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.18); osc.start(); osc.stop(ctx.currentTime + 0.18); } catch {} };
+  useEffect(() => subscribeAllLiveChats(chats => { const unread = new Set(chats.filter(c => c.status === 'open' && c.unreadForAdmin).map(c => c.id)); const prev = previousUnreadIds.current; if (prev && [...unread].some(id => !prev.has(id))) playChatNotification(); previousUnreadIds.current = unread; setLiveChats(chats); }), []);
+  useEffect(() => { if (!selectedChatId) { setLiveMessages([]); return; } void markChatRead(selectedChatId, 'admin'); return subscribeLiveChat(selectedChatId, setLiveMessages); }, [selectedChatId]);
   const handleLiveReply = async (e: React.FormEvent) => { e.preventDefault(); if (!selectedChatId || !liveReply.trim()) return; const msg=liveReply; setLiveReply(''); await sendLiveChatMessage(selectedChatId, 'admin', msg); };
+
+  const liveChatUnreadCount = liveChats.filter(c => c.status === 'open' && c.unreadForAdmin).length;
 
   const formatFirestoreDate = (value: unknown): string => {
     if (!value) return '—';
@@ -840,6 +844,11 @@ export const AdminPage: React.FC = () => {
                   {item.id === 'transactions' && pendingTxCount > 0 && (
                     <span className="text-[10px] px-1.5 py-0.5 rounded-full font-bold bg-amber-500/20 text-amber-400 animate-pulse">
                       {pendingTxCount}
+                    </span>
+                  )}
+                  {item.id === 'live-chat' && liveChatUnreadCount > 0 && (
+                    <span className="min-w-5 h-5 px-1.5 rounded-full bg-[#F5C400] text-black text-[10px] font-black flex items-center justify-center animate-pulse">
+                      {liveChatUnreadCount}
                     </span>
                   )}
                 </button>
@@ -1896,7 +1905,7 @@ export const AdminPage: React.FC = () => {
                 <div className="grid lg:grid-cols-[320px_1fr] gap-4 min-h-[600px]">
                   <div className="bg-[#141416] border border-[#29292C] rounded-2xl p-3 overflow-y-auto">
                     {liveChats.length===0 && <div className="p-5 text-sm text-[#737378]">No chat sessions yet.</div>}
-                    {liveChats.map(c=><button key={c.id} onClick={()=>setSelectedChatId(c.id)} className={`w-full text-left p-3 rounded-xl mb-2 border ${selectedChatId===c.id?'border-[#F5C400]/50 bg-[#F5C400]/5':'border-[#29292C] bg-[#1C1C1E]'}`}><div className="flex justify-between gap-2"><span className="font-bold text-sm text-white truncate">{c.name}</span><span className={`text-[10px] font-bold ${c.status==='open'?'text-emerald-400':'text-[#737378]'}`}>{c.status.toUpperCase()}</span></div><div className="text-[11px] text-[#A9A9AD] truncate">{c.email}</div><div className="text-[11px] text-[#737378] truncate mt-1">{c.lastMessage||'Chat started'}</div></button>)}
+                    {liveChats.map(c=><button key={c.id} onClick={()=>{setSelectedChatId(c.id);void markChatRead(c.id,'admin')}} className={`w-full text-left p-3 rounded-xl mb-2 border ${selectedChatId===c.id?'border-[#F5C400]/50 bg-[#F5C400]/5':'border-[#29292C] bg-[#1C1C1E]'}`}><div className="flex justify-between gap-2"><span className="font-bold text-sm text-white truncate">{c.name}</span><span className={`text-[10px] font-bold ${c.status==='open'?'text-emerald-400':'text-[#737378]'}`}>{c.status.toUpperCase()}</span></div><div className="text-[11px] text-[#A9A9AD] truncate">{c.email}</div><div className="text-[11px] text-[#737378] truncate mt-1">{c.lastMessage||'Chat started'}</div></button>)}
                   </div>
                   <div className="bg-[#141416] border border-[#29292C] rounded-2xl flex flex-col overflow-hidden">
                     {!selectedChatId?<div className="m-auto text-sm text-[#737378]">Select a conversation.</div>:<><div className="p-4 border-b border-[#29292C] flex justify-between items-center"><div><div className="font-bold text-white">{liveChats.find(c=>c.id===selectedChatId)?.name}</div><div className="text-xs text-[#A9A9AD]">{liveChats.find(c=>c.id===selectedChatId)?.email}</div></div><button onClick={()=>endLiveChat(selectedChatId)} disabled={liveChats.find(c=>c.id===selectedChatId)?.status==='ended'} className="text-xs px-3 py-2 rounded-lg border border-red-500/30 text-red-400 disabled:opacity-40">End Chat</button></div><div className="flex-1 p-4 overflow-y-auto space-y-3">{liveMessages.map(m=><div key={m.id} className={`flex ${m.sender==='admin'?'justify-end':'justify-start'}`}><div className={`max-w-[80%] px-3 py-2 rounded-xl text-sm ${m.sender==='admin'?'bg-[#F5C400] text-black':'bg-[#242427] text-white'}`}>{m.text}</div></div>)}</div><form onSubmit={handleLiveReply} className="p-3 border-t border-[#29292C] flex gap-2"><input disabled={liveChats.find(c=>c.id===selectedChatId)?.status==='ended'} value={liveReply} onChange={e=>setLiveReply(e.target.value)} placeholder="Reply to client…" className="flex-1 bg-[#1C1C1E] border border-[#343438] rounded-xl px-3 py-2.5 text-white disabled:opacity-50"/><button disabled={liveChats.find(c=>c.id===selectedChatId)?.status==='ended'} className="w-11 rounded-xl bg-[#F5C400] text-black flex items-center justify-center disabled:opacity-50"><Send className="w-4 h-4"/></button></form></>}

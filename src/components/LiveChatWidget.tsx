@@ -1,11 +1,14 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { MessageSquare, Send, X } from 'lucide-react';
-import { createLiveChat, endLiveChat, sendLiveChatMessage, subscribeChatSession, subscribeLiveChat, type LiveChatMessage } from '../lib/liveChat';
+import { createLiveChat, endLiveChat, markChatRead, sendLiveChatMessage, subscribeChatSession, subscribeLiveChat, type LiveChatMessage } from '../lib/liveChat';
 
 export const LiveChatWidget: React.FC = () => {
   const [open,setOpen]=useState(false), [chatId,setChatId]=useState<string|null>(null), [name,setName]=useState(''), [email,setEmail]=useState(''), [text,setText]=useState(''), [messages,setMessages]=useState<LiveChatMessage[]>([]), [ended,setEnded]=useState(false), [error,setError]=useState(''), [busy,setBusy]=useState(false);
   const bottom=useRef<HTMLDivElement>(null);
-  useEffect(()=>{ if(!chatId)return; const a=subscribeLiveChat(chatId,setMessages); const b=subscribeChatSession(chatId,s=>setEnded(s?.status==='ended')); return()=>{a();b();}; },[chatId]);
+  const previousMessageCount=useRef<number|null>(null);
+  const playNotification=()=>{ try { const AC=(window.AudioContext || (window as any).webkitAudioContext); if(!AC)return; const ctx=new AC(); const osc=ctx.createOscillator(); const gain=ctx.createGain(); osc.connect(gain); gain.connect(ctx.destination); osc.frequency.value=720; gain.gain.setValueAtTime(0.06,ctx.currentTime); gain.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+0.16); osc.start(); osc.stop(ctx.currentTime+0.16); } catch {} };
+  useEffect(()=>{ const saved=localStorage.getItem('bafin_live_chat_id'); if(saved)setChatId(saved); },[]);
+  useEffect(()=>{ if(!chatId)return; previousMessageCount.current=null; const a=subscribeLiveChat(chatId,m=>{ const prev=previousMessageCount.current; setMessages(m); if(prev!==null && m.length>prev && m[m.length-1]?.sender==='admin'){ playNotification(); void markChatRead(chatId,'visitor'); } previousMessageCount.current=m.length; }); const b=subscribeChatSession(chatId,s=>{ if(!s){ localStorage.removeItem('bafin_live_chat_id'); setChatId(null); return; } setName(s.name||''); setEmail(s.email||''); const isEnded=s.status==='ended'; setEnded(isEnded); if(isEnded)localStorage.removeItem('bafin_live_chat_id'); else { localStorage.setItem('bafin_live_chat_id',chatId); if(s.unreadForVisitor)void markChatRead(chatId,'visitor'); } }); return()=>{a();b();}; },[chatId]);
   useEffect(()=>{
     // Some browsers/device-emulation environments may expose the ref before
     // scrollIntoView is available. Never let auto-scroll crash the chat UI.
@@ -14,7 +17,7 @@ export const LiveChatWidget: React.FC = () => {
       el.scrollIntoView({behavior:'smooth'});
     }
   },[messages]);
-  const start=async(e:React.FormEvent)=>{e.preventDefault();setError('');setBusy(true);try{setChatId(await createLiveChat(name,email));}catch(err:any){setError(err?.code==='auth/operation-not-allowed'?'Live chat requires Anonymous sign-in to be enabled in Firebase Authentication.':'Unable to start chat. Please try again.');}finally{setBusy(false)}};
+  const start=async(e:React.FormEvent)=>{e.preventDefault();setError('');setBusy(true);try{const id=await createLiveChat(name,email);localStorage.setItem('bafin_live_chat_id',id);setChatId(id);}catch(err:any){setError(err?.code==='auth/operation-not-allowed'?'Live chat requires Anonymous sign-in to be enabled in Firebase Authentication.':'Unable to start chat. Please try again.');}finally{setBusy(false)}};
   const send=async(e:React.FormEvent)=>{e.preventDefault();if(!chatId||!text.trim()||ended)return;const v=text;setText('');try{await sendLiveChatMessage(chatId,'visitor',v)}catch{setText(v);setError('Message could not be sent.')}};
   const end=async()=>{if(chatId)await endLiveChat(chatId)};
   return <>
