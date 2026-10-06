@@ -114,7 +114,7 @@ const Navbar = () => {
 
   return (
     <nav className={cn(
-      "fixed top-0 left-0 right-0 z-50 transition-all duration-300 px-6 py-4",
+      "fixed top-0 left-0 right-0 z-50 transition-all duration-300 px-4 sm:px-6 py-4",
       isScrolled || !isHome ? "bg-[#0B0B0C]/90 backdrop-blur-md border-b border-[#29292C] py-3" : "bg-transparent"
     )}>
       <div className="max-w-7xl mx-auto flex items-center justify-between">
@@ -186,11 +186,12 @@ const Navbar = () => {
           )}
         </div>
 
-        {/* Mobile Menu Toggle & Compact Switcher */}
-        <div className="flex items-center gap-3 md:hidden">
-          <LanguageSwitcher />
+        {/* Mobile Menu Toggle. Language selector remains inside the opened menu
+            so the hamburger always stays visible on narrow phones. */}
+        <div className="flex items-center md:hidden shrink-0">
           <button 
-            className="text-white p-1"
+            type="button"
+            className="text-white p-2 -mr-2 rounded-lg hover:bg-white/5 active:bg-white/10 transition-colors"
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
             aria-label="Toggle Navigation Menu"
           >
@@ -206,9 +207,9 @@ const Navbar = () => {
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
-            className="md:hidden bg-[#111112] border-b border-[#29292C] overflow-hidden"
+            className="md:hidden absolute left-0 right-0 top-full bg-[#111112]/98 backdrop-blur-md border-b border-[#29292C] overflow-y-auto shadow-2xl max-h-[calc(100vh-72px)]"
           >
-            <div className="flex flex-col gap-4 p-6">
+            <div className="flex flex-col gap-4 px-5 py-5 sm:p-6">
               {navLinks.map((link) => (
                 link.href.startsWith('#') || (link.href.startsWith('/#')) ? (
                   <a 
