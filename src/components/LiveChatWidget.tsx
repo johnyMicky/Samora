@@ -6,7 +6,14 @@ export const LiveChatWidget: React.FC = () => {
   const [open,setOpen]=useState(false), [chatId,setChatId]=useState<string|null>(null), [name,setName]=useState(''), [email,setEmail]=useState(''), [text,setText]=useState(''), [messages,setMessages]=useState<LiveChatMessage[]>([]), [ended,setEnded]=useState(false), [error,setError]=useState(''), [busy,setBusy]=useState(false);
   const bottom=useRef<HTMLDivElement>(null);
   useEffect(()=>{ if(!chatId)return; const a=subscribeLiveChat(chatId,setMessages); const b=subscribeChatSession(chatId,s=>setEnded(s?.status==='ended')); return()=>{a();b();}; },[chatId]);
-  useEffect(()=>bottom.current?.scrollIntoView({behavior:'smooth'}),[messages]);
+  useEffect(()=>{
+    // Some browsers/device-emulation environments may expose the ref before
+    // scrollIntoView is available. Never let auto-scroll crash the chat UI.
+    const el = bottom.current;
+    if (el && typeof el.scrollIntoView === 'function') {
+      el.scrollIntoView({behavior:'smooth'});
+    }
+  },[messages]);
   const start=async(e:React.FormEvent)=>{e.preventDefault();setError('');setBusy(true);try{setChatId(await createLiveChat(name,email));}catch(err:any){setError(err?.code==='auth/operation-not-allowed'?'Live chat requires Anonymous sign-in to be enabled in Firebase Authentication.':'Unable to start chat. Please try again.');}finally{setBusy(false)}};
   const send=async(e:React.FormEvent)=>{e.preventDefault();if(!chatId||!text.trim()||ended)return;const v=text;setText('');try{await sendLiveChatMessage(chatId,'visitor',v)}catch{setText(v);setError('Message could not be sent.')}};
   const end=async()=>{if(chatId)await endLiveChat(chatId)};
