@@ -82,7 +82,28 @@ service cloud.firestore {
       allow update, delete: if isAdmin();
     }
 
-    // 9. Activity Logs
+    // 9. Live Chat — visitors use Firebase Anonymous Auth; admins can access all chats.
+    match /chatSessions/{chatId} {
+      allow create: if isAuthenticated()
+        && request.resource.data.visitorUid == request.auth.uid
+        && request.resource.data.status == 'open';
+      allow read: if isAdmin() || (isAuthenticated() && resource.data.visitorUid == request.auth.uid);
+      allow update: if isAdmin() || (isAuthenticated() && resource.data.visitorUid == request.auth.uid
+        && request.resource.data.visitorUid == resource.data.visitorUid);
+      allow delete: if isAdmin();
+
+      match /messages/{messageId} {
+        allow read: if isAdmin() || (isAuthenticated()
+          && get(/databases/$(database)/documents/chatSessions/$(chatId)).data.visitorUid == request.auth.uid);
+        allow create: if (isAdmin() && request.resource.data.sender == 'admin')
+          || (isAuthenticated()
+            && get(/databases/$(database)/documents/chatSessions/$(chatId)).data.visitorUid == request.auth.uid
+            && request.resource.data.sender == 'visitor');
+        allow update, delete: if false;
+      }
+    }
+
+    // 10. Activity Logs
     match /activityLogs/{logId} {
       allow read, write: if isAdmin();
     }

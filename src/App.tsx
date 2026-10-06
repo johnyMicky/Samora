@@ -41,6 +41,7 @@ import { LoginPage } from './pages/LoginPage';
 import { RegisterPage } from './pages/RegisterPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { AdminPage } from './pages/AdminPage';
+import { LiveChatWidget } from './components/LiveChatWidget';
 
 // --- Scroll to Top Component ---
 const ScrollToTop = () => {
@@ -993,7 +994,7 @@ const ContactForm = () => {
     setSubmitted(true);
     const subject = `Case Assessment Request: ${currentIncidentType}`;
     const body = `Full Name: ${formData.name}%0D%0AEmail: ${formData.email}%0D%0APhone: ${formData.phone}%0D%0ACountry: ${formData.country}%0D%0AIncident Type: ${currentIncidentType}%0D%0AApproximate Loss: ${formData.lossAmount}%0D%0AApproximate Date: ${formData.incidentDate}%0D%0APayment Method: ${formData.paymentMethod}%0D%0A%0D%0ACase Details:%0D%0A${formData.details}`;
-    window.location.href = `mailto:audits@samoratrace.com?subject=${encodeURIComponent(subject)}&body=${body}`;
+    window.location.href = `mailto:support@bafinsolution.com?subject=${encodeURIComponent(subject)}&body=${body}`;
   };
 
   return (
@@ -1014,13 +1015,13 @@ const ContactForm = () => {
               </p>
               
               <div className="space-y-6">
-                <a href="mailto:audits@samoratrace.com" className="flex items-center gap-4 group w-fit">
+                <a href="mailto:support@bafinsolution.com" className="flex items-center gap-4 group w-fit">
                   <div className="w-12 h-12 rounded-xl bg-[#1C1C1E] border border-[#29292C] flex items-center justify-center group-hover:border-[rgba(245,196,0,0.30)] group-hover:bg-[rgba(245,196,0,0.08)] transition-colors">
                     <Mail className="text-[#F5C400] w-6 h-6" />
                   </div>
                   <div>
                     <div className="text-sm text-[#737378]">{t.form.emailLabel}</div>
-                    <div className="text-[#F5F5F5] font-medium group-hover:text-[#F5C400] transition-colors">audits@samoratrace.com</div>
+                    <div className="text-[#F5F5F5] font-medium group-hover:text-[#F5C400] transition-colors">support@bafinsolution.com</div>
                   </div>
                 </a>
                 <a href="tel:+493012345678" className="flex items-center gap-4 group w-fit">
@@ -1039,7 +1040,7 @@ const ContactForm = () => {
                   </div>
                   <div>
                     <div className="text-sm text-[#737378]">{t.form.hqLabel}</div>
-                    <div className="text-[#F5F5F5] font-medium">One World Trade Center, 85th Floor, New York, NY 10007, USA</div>
+                    <div className="text-[#F5F5F5] font-medium">Walther-von-Cronberg-Platz 16, 60594 Frankfurt am Main, Deutschland</div>
                   </div>
                 </div>
               </div>
@@ -1213,7 +1214,7 @@ const Footer = () => {
             </p>
             <div className="flex items-start gap-3 text-[#A9A9AD] mb-4">
               <MapPin className="w-5 h-5 text-[#F5C400] shrink-0" />
-              <span className="text-sm">One World Trade Center, 85th Floor, New York, NY 10007, USA</span>
+              <span className="text-sm">Walther-von-Cronberg-Platz 16, 60594 Frankfurt am Main, Deutschland</span>
             </div>
             <a href="tel:+493012345678" className="flex items-start gap-3 text-[#A9A9AD] mb-6 hover:text-white transition-colors group">
               <Phone className="w-5 h-5 text-[#F5C400] shrink-0" />
@@ -1230,7 +1231,7 @@ const Footer = () => {
               <a href="https://instagram.com" target="_blank" rel="noopener noreferrer" className="w-10 h-10 rounded-lg bg-[#161617] border border-[#29292C] flex items-center justify-center text-[#737378] hover:text-[#F5C400] hover:border-[rgba(245,196,0,0.30)] hover:bg-[rgba(245,196,0,0.08)] transition-all">
                 <Instagram className="w-5 h-5" />
               </a>
-              <a href="mailto:audits@samoratrace.com" className="w-10 h-10 rounded-lg bg-[#161617] border border-[#29292C] flex items-center justify-center text-[#737378] hover:text-[#F5C400] hover:border-[rgba(245,196,0,0.30)] hover:bg-[rgba(245,196,0,0.08)] transition-all">
+              <a href="mailto:support@bafinsolution.com" className="w-10 h-10 rounded-lg bg-[#161617] border border-[#29292C] flex items-center justify-center text-[#737378] hover:text-[#F5C400] hover:border-[rgba(245,196,0,0.30)] hover:bg-[rgba(245,196,0,0.08)] transition-all">
                 <Mail className="w-5 h-5" />
               </a>
             </div>
@@ -1295,22 +1296,8 @@ const Layout = () => {
         <Outlet />
       </main>
 
-      {/* Floating Action Button */}
-      <Link to="/contact">
-        <motion.button
-          initial={{ opacity: 0, scale: 0.8 }}
-          animate={{ opacity: 1, scale: 1 }}
-          whileHover={{ scale: 1.1 }}
-          whileTap={{ scale: 0.9 }}
-          className="fixed bottom-8 right-8 z-40 w-14 h-14 bg-[#F5C400] hover:bg-[#FFD000] text-[#0B0B0C] rounded-full shadow-2xl shadow-[#F5C400]/30 border border-[#F5C400] flex items-center justify-center group"
-          aria-label={t.nav.caseAssessment}
-        >
-          <MessageSquare className="w-6 h-6 group-hover:scale-110 transition-transform" />
-          <span className="absolute right-full mr-4 px-3 py-1 bg-[#161617] text-[#F5F5F5] text-xs font-bold rounded-lg opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap border border-[#29292C]">
-            {t.nav.caseAssessment}
-          </span>
-        </motion.button>
-      </Link>
+      {/* First-party Firebase live chat */}
+      <LiveChatWidget />
 
       <Footer />
     </div>

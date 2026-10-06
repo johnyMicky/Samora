@@ -33,7 +33,9 @@ import {
   Shield,
   ArrowLeft,
   Eye,
-  EyeOff
+  EyeOff,
+  MessageSquare,
+  Send
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { createManagedFirebaseUser } from '../lib/firebase';
@@ -64,8 +66,9 @@ import {
   type FirestoreUserProfile, type FirestoreWallet, type FirestoreBankAccount, type FirestorePaymentCard,
   type FirestoreCase, type FirestoreTransaction, type FirestoreDocument, type FirestoreWithdrawalRequest
 } from '../lib/firestoreService';
+import { endLiveChat, sendLiveChatMessage, subscribeAllLiveChats, subscribeLiveChat, type LiveChatMessage, type LiveChatSession } from '../lib/liveChat';
 
-type AdminTab = 'overview' | 'clients' | 'cases' | 'finance' | 'transactions' | 'documents' | 'activity-log';
+type AdminTab = 'overview' | 'clients' | 'cases' | 'finance' | 'transactions' | 'documents' | 'live-chat' | 'activity-log';
 type UserFilter = 'ALL' | 'CLIENTS' | 'ADMINS' | 'ACTIVE' | 'PENDING' | 'SUSPENDED';
 
 export const AdminPage: React.FC = () => {
@@ -132,6 +135,14 @@ export const AdminPage: React.FC = () => {
   const [firebaseUsersError, setFirebaseUsersError] = useState<string | null>(null);
   const [realAllCases, setRealAllCases] = useState<FirestoreCase[]>([]);
   const [realAllWithdrawals, setRealAllWithdrawals] = useState<FirestoreWithdrawalRequest[]>([]);
+  const [liveChats, setLiveChats] = useState<LiveChatSession[]>([]);
+  const [selectedChatId, setSelectedChatId] = useState<string | null>(null);
+  const [liveMessages, setLiveMessages] = useState<LiveChatMessage[]>([]);
+  const [liveReply, setLiveReply] = useState('');
+
+  useEffect(() => subscribeAllLiveChats(setLiveChats), []);
+  useEffect(() => { if (!selectedChatId) { setLiveMessages([]); return; } return subscribeLiveChat(selectedChatId, setLiveMessages); }, [selectedChatId]);
+  const handleLiveReply = async (e: React.FormEvent) => { e.preventDefault(); if (!selectedChatId || !liveReply.trim()) return; const msg=liveReply; setLiveReply(''); await sendLiveChatMessage(selectedChatId, 'admin', msg); };
 
   const formatFirestoreDate = (value: unknown): string => {
     if (!value) return '—';
@@ -291,6 +302,7 @@ export const AdminPage: React.FC = () => {
     { id: 'finance', label: t.admin.navFinance, icon: Landmark },
     { id: 'transactions', label: t.admin.navTransactions, icon: ArrowLeftRight },
     { id: 'documents', label: t.admin.navDocuments, icon: FileText },
+    { id: 'live-chat', label: 'Live Chat', icon: MessageSquare },
     { id: 'activity-log', label: t.admin.navActivityLog, icon: ScrollText },
   ];
 
@@ -1873,6 +1885,22 @@ export const AdminPage: React.FC = () => {
                       </div>
                     </div>
                   ))}
+                </div>
+              </div>
+            )}
+
+            {/* TAB: LIVE CHAT */}
+            {activeTab === 'live-chat' && !selectedClientId && (
+              <div className="space-y-6">
+                <div><h2 className="text-2xl font-bold text-white">Live Chat</h2><p className="text-xs text-[#A9A9AD] mt-1">Real-time conversations started from the public website.</p></div>
+                <div className="grid lg:grid-cols-[320px_1fr] gap-4 min-h-[600px]">
+                  <div className="bg-[#141416] border border-[#29292C] rounded-2xl p-3 overflow-y-auto">
+                    {liveChats.length===0 && <div className="p-5 text-sm text-[#737378]">No chat sessions yet.</div>}
+                    {liveChats.map(c=><button key={c.id} onClick={()=>setSelectedChatId(c.id)} className={`w-full text-left p-3 rounded-xl mb-2 border ${selectedChatId===c.id?'border-[#F5C400]/50 bg-[#F5C400]/5':'border-[#29292C] bg-[#1C1C1E]'}`}><div className="flex justify-between gap-2"><span className="font-bold text-sm text-white truncate">{c.name}</span><span className={`text-[10px] font-bold ${c.status==='open'?'text-emerald-400':'text-[#737378]'}`}>{c.status.toUpperCase()}</span></div><div className="text-[11px] text-[#A9A9AD] truncate">{c.email}</div><div className="text-[11px] text-[#737378] truncate mt-1">{c.lastMessage||'Chat started'}</div></button>)}
+                  </div>
+                  <div className="bg-[#141416] border border-[#29292C] rounded-2xl flex flex-col overflow-hidden">
+                    {!selectedChatId?<div className="m-auto text-sm text-[#737378]">Select a conversation.</div>:<><div className="p-4 border-b border-[#29292C] flex justify-between items-center"><div><div className="font-bold text-white">{liveChats.find(c=>c.id===selectedChatId)?.name}</div><div className="text-xs text-[#A9A9AD]">{liveChats.find(c=>c.id===selectedChatId)?.email}</div></div><button onClick={()=>endLiveChat(selectedChatId)} disabled={liveChats.find(c=>c.id===selectedChatId)?.status==='ended'} className="text-xs px-3 py-2 rounded-lg border border-red-500/30 text-red-400 disabled:opacity-40">End Chat</button></div><div className="flex-1 p-4 overflow-y-auto space-y-3">{liveMessages.map(m=><div key={m.id} className={`flex ${m.sender==='admin'?'justify-end':'justify-start'}`}><div className={`max-w-[80%] px-3 py-2 rounded-xl text-sm ${m.sender==='admin'?'bg-[#F5C400] text-black':'bg-[#242427] text-white'}`}>{m.text}</div></div>)}</div><form onSubmit={handleLiveReply} className="p-3 border-t border-[#29292C] flex gap-2"><input disabled={liveChats.find(c=>c.id===selectedChatId)?.status==='ended'} value={liveReply} onChange={e=>setLiveReply(e.target.value)} placeholder="Reply to client…" className="flex-1 bg-[#1C1C1E] border border-[#343438] rounded-xl px-3 py-2.5 text-white disabled:opacity-50"/><button disabled={liveChats.find(c=>c.id===selectedChatId)?.status==='ended'} className="w-11 rounded-xl bg-[#F5C400] text-black flex items-center justify-center disabled:opacity-50"><Send className="w-4 h-4"/></button></form></>}
+                  </div>
                 </div>
               </div>
             )}
