@@ -1,4 +1,4 @@
-import { addDoc, collection, doc, onSnapshot, orderBy, query, serverTimestamp, setDoc, updateDoc } from 'firebase/firestore';
+import { addDoc, collection, deleteDoc, doc, getDocs, onSnapshot, orderBy, query, serverTimestamp, setDoc, updateDoc, writeBatch } from 'firebase/firestore';
 import { signInAnonymously } from 'firebase/auth';
 import { auth, db } from '../firebase';
 
@@ -40,3 +40,15 @@ export async function markChatRead(chatId: string, side: 'admin'|'visitor') {
   await updateDoc(doc(db, 'chatSessions', chatId), side === 'admin' ? { unreadForAdmin: false } : { unreadForVisitor: false });
 }
 export async function endLiveChat(chatId: string) { await updateDoc(doc(db,'chatSessions',chatId), {status:'ended', unreadForAdmin:false, unreadForVisitor:false, updatedAt:serverTimestamp()}); }
+
+export async function deleteLiveChat(chatId: string) {
+  const messagesRef = collection(db, 'chatSessions', chatId, 'messages');
+  const snapshot = await getDocs(messagesRef);
+  const docs = snapshot.docs;
+  for (let i = 0; i < docs.length; i += 450) {
+    const batch = writeBatch(db);
+    docs.slice(i, i + 450).forEach(messageDoc => batch.delete(messageDoc.ref));
+    await batch.commit();
+  }
+  await deleteDoc(doc(db, 'chatSessions', chatId));
+}
