@@ -297,6 +297,15 @@ export const subscribeToAuth = (callback: AuthCallback): (() => void) => {
 
   const unsubscribeFirebase = onAuthStateChanged(auth, async (fbUser: FirebaseUser | null) => {
     if (fbUser) {
+      // Live Support intentionally uses Firebase Anonymous Auth for public visitors.
+      // Anonymous visitors do not have a users/{uid} portal profile and MUST NOT be
+      // signed out here, otherwise the live-chat Firestore write loses authentication
+      // while it is being created and the UI can remain stuck on "Starting…".
+      if (fbUser.isAnonymous) {
+        callback(null);
+        return;
+      }
+
       try {
         const userDocRef = doc(db, 'users', fbUser.uid);
         const userDoc = await getDoc(userDocRef);
